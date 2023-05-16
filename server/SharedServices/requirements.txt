@@ -1,0 +1,3 @@
+requests
+aws_requests_auth
+shortuuid

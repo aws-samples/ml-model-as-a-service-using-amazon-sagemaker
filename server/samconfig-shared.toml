@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "mlaas"
+s3_bucket = "sam-bootstrap-bucket-d72881ff-45e3-44de-bbc2-7e10bddd4376"
+s3_prefix = "mlaas-bootstrap"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND"

@@ -1,0 +1,38 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+version: 0.2
+phases:
+  install:    
+    commands:
+      # Install packages or any pre-reqs in this phase.
+      - npm install -g aws-cdk
+      - cdk --version 
+      - cd server/custom_resources
+      - python -m pip install -r requirements.txt
+      - cd ../sm-pipeline-cdk
+      - python -m pip install -r requirements.txt
+      
+
+  pre_build:
+    commands:
+      # Run tests, lint scripts or any other pre-build checks.
+
+  build:
+    commands:
+      # Use Build phase to build your artifacts (compile, etc.)
+      - rm -rf cdk.out
+      - cdk bootstrap
+      - cd ../
+      - ./deploy-tenant-stacks.sh
+
+  post_build:
+    commands:
+      # Use Post-Build for notifications, git tags, upload artifacts to S3
+      
+
+artifacts:
+  # discard-paths: yes
+  files:
+    # List of local artifacts that will be passed down the pipeline
+    - "**/*"
