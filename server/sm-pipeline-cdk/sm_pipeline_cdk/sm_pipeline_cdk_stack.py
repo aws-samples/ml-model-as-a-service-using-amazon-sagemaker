@@ -49,7 +49,7 @@ class SmPipelineCdkStack(Stack):
         sm_execution_role = sagemaker_roles.sm_execution_role
 
         sagemaker_service_catalog = SageMakerServiceCatalogue(self, "SageMakerServiceCatalogue", sm_execution_role)
-        service_catalog_portfolio_id =sagemaker_service_catalog.service_catalog_portfolio_id
+        self._service_catalog_portfolio_id =sagemaker_service_catalog.service_catalog_portfolio_id
         
 
         CfnOutput(self, "SageMakerExecutionRoleArn",
@@ -115,7 +115,7 @@ class SmPipelineCdkStack(Stack):
         )
 
         #Create SageMaker Project
-        sm_project = SageMakerProject(self, "SageMakerProject", service_catalog_portfolio_id, self._sm_domain_id)
+        sm_project = SageMakerProject(self, "SageMakerProject", self._service_catalog_portfolio_id, self._sm_domain_id)
 
         CfnOutput(self,"MlaasPoolSagemakerProjectName", 
                   value=sm_project.sagemaker_project_name, export_name="MlaasPoolSagemakerProjectProjectName")
