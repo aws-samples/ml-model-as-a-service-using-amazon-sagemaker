@@ -101,9 +101,9 @@ class TenantCdkStack(Stack):
             )
             tenant_iam_role = s3_tenant_iam_role
             # LAB 3 changes
-            # pooled_samgemaker_endpoint_stack = PooledSageMakerEndpoint(self, "PooledSageMakerEndpoint")
+            # pooled_sagemaker_endpoint_stack = PooledSageMakerEndpoint(self, "PooledSageMakerEndpoint")
             # pooloed_samgemaker_infrastructure_stack = PooledSageMakerInfrastructure(self, "PooledSageMakerInfrastructure", 
-            # endpoint_name = pooled_samgemaker_endpoint_stack.model_endpoint_name, 
+            # endpoint_name = pooled_sagemaker_endpoint_stack.model_endpoint_name, 
             # api_gateway_id = tenant_api_gateway._api_gateway_id,
             # api_gateway_root_resource_id = tenant_api_gateway._api_gateway_root_resource_id)
         # LAB 4 changes
