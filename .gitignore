@@ -1,0 +1,21 @@
+*.swp
+__pycache__
+.pytest_cache
+.venv
+*.egg-info
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+.aws-sam
+**/.DS_Store
+**tmp
+**~
+**.bak
+*environments.*.ts
+*aws-exports.ts
+*samconfig-shared.toml
+
+
+# node.js files
+node_modules/
