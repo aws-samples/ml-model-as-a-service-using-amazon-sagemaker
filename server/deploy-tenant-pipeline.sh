@@ -13,6 +13,9 @@ if ! aws codecommit get-repository --repository-name ml-saas-workshop; then
     git remote set-url cc "$REPO_URL"
   fi
   git push --set-upstream cc main
+  git add -u .
+  git commit -m 'Commit changes'
+  git push
 fi
 
 # enable yarn
