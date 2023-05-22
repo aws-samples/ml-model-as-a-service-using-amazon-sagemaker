@@ -20,7 +20,45 @@ table_tenant_details = dynamodb.Table('MLaaS-TenantDetails')
 
 
 def create_tenant_admin_user(event, context):
-    pass
+    tenant_user_pool_id = os.environ['TENANT_USER_POOL_ID']
+    tenant_app_client_id = os.environ['TENANT_APP_CLIENT_ID']
+    
+    tenant_details = json.loads(event['body'])
+    tenant_id = tenant_details['tenantId']
+    logger.info(tenant_details)
+
+    user_mgmt = UserManagement()
+    
+    # TODO: Lab4 - uncomment below Gold tier code
+    # if (tenant_details['dedicatedTenancy'] == 'true'):
+    #     user_pool_response = user_mgmt.create_user_pool(tenant_id)
+    #     user_pool_id = user_pool_response['UserPool']['Id']
+    #     logger.info (user_pool_id)
+        
+    #     app_client_response = user_mgmt.create_user_pool_client(user_pool_id)
+    #     logger.info(app_client_response)
+    #     app_client_id = app_client_response['UserPoolClient']['ClientId']
+    #     user_pool_domain_response = user_mgmt.create_user_pool_domain(user_pool_id, tenant_id)
+        
+    #     logger.info ("New Tenant Created")
+    # else:
+    user_pool_id = tenant_user_pool_id
+    app_client_id = tenant_app_client_id
+
+    #Add tenant admin now based upon user pool
+    tenant_user_group_response = user_mgmt.create_user_group(user_pool_id,tenant_id,"User group for tenant {0}".format(tenant_id))
+
+    tenant_admin_user_name = tenant_details['tenantEmail']
+
+    create_tenant_admin_response = user_mgmt.create_tenant_admin(user_pool_id, tenant_admin_user_name, tenant_details)
+    
+    add_tenant_admin_to_group_response = user_mgmt.add_user_to_group(user_pool_id, tenant_admin_user_name, tenant_user_group_response['Group']['GroupName'])
+    
+    tenant_user_mapping_response = user_mgmt.create_user_tenant_mapping(tenant_admin_user_name,tenant_id)
+    
+    response = {"userPoolId": user_pool_id, "appClientId": app_client_id, "tenantAdminUserName": tenant_admin_user_name}
+    return utils.create_success_response(response)
+
 
 class UserManagement:
     def create_user_pool(self, tenant_id):

@@ -21,7 +21,32 @@ region = os.environ['AWS_REGION']
 
 #This method has been locked down to be only
 def create_tenant(event, context):
-    pass
+    tenant_details = json.loads(event['body'])
+    dynamodb = boto3.resource('dynamodb')
+    table_tenant_details = dynamodb.Table('MLaaS-TenantDetails')
+
+    try:          
+    
+        response = table_tenant_details.put_item(
+            Item={
+                    'tenantId': tenant_details['tenantId'],
+                    'tenantName' : tenant_details['tenantName'],
+                    'tenantEmail': tenant_details['tenantEmail'],
+                    'tenantTier': tenant_details['tenantTier'],
+                    'userPoolId': tenant_details['userPoolId'],                 
+                    'appClientId': tenant_details['appClientId'],
+                    'modelVersion': 0,
+                    # TODO: Lab4 - uncomment below Gold tier code
+                    # 'dedicatedTenancy': tenant_details['dedicatedTenancy'],
+                    'isActive': True
+                }
+            )                    
+
+    except Exception as e:
+        raise Exception('Error creating a new tenant', e)
+    else:
+        return utils.create_success_response("Tenant Created")
+
 
 def get_tenants(event, context):
     
