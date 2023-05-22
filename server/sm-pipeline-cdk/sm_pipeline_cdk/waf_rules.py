@@ -8,7 +8,7 @@ from constructs import Construct
 
 class Waf(Construct):
 
-    def __init__(self, scope: Construct, id: str, api_target_arn: str,**kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, api_target_arn: str, tenant_id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         waf_rules = []
@@ -103,7 +103,7 @@ class Waf(Construct):
                                    metric_name='webACL',
                                    sampled_requests_enabled=True
                                ),
-                               name='MlaasACL',
+                               name=f'MlaasACL-{tenant_id}',
                                rules=waf_rules
                                )
 

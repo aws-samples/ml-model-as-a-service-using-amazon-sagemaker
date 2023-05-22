@@ -79,7 +79,7 @@ class TenantCdkStack(Stack):
         tenant_api_gateway = MlaasApiGateway(self, "TenantResources", bucket_arn=bucket.bucket_arn, tenant_id=tenant_id)
         
         # Call the waf rules construct
-        waf_rules = Waf(self, "WafRules", api_target_arn=tenant_api_gateway.api_gateway_arn)
+        waf_rules = Waf(self, "WafRules", api_target_arn=tenant_api_gateway.api_gateway_arn, tenant_id=tenant_id)
         
 
         # Get deployment type from context
