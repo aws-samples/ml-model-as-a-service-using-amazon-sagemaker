@@ -37,6 +37,10 @@ class SmPipelineCdkStack(Stack):
                     "jupyterserver": "arn:aws:sagemaker:us-east-1:081325390199:image/jupyter-server",
                     "jupyterserver3": "arn:aws:sagemaker:us-east-1:081325390199:image/jupyter-server-3"
                 },
+                "us-east-2": {
+                    "jupyterserver": "arn:aws:sagemaker:us-east-2:429704687514:image/jupyter-server",
+                    "jupyterserver3": "arn:aws:sagemaker:us-east-2:429704687514:image/jupyter-server-3"
+                },
                 "us-west-2": {
                     "jupyterserver": "arn:aws:sagemaker:us-west-2:236514542706:image/jupyter-server",
                     "jupyterserver3": "arn:aws:sagemaker:us-west-2:236514542706:image/jupyter-server-3"
