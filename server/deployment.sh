@@ -60,7 +60,7 @@ if [[ $server -eq 1 ]]; then
   cdk synth 
   cdk bootstrap
   cdk deploy NetworkingCdkStack
-  cdk deploy SmPipelineCdkStack
+  cdk deploy SmPipelineCdkStack --require-approval never
   
   
   cd ..
@@ -73,7 +73,7 @@ if [[ $server -eq 1 ]]; then
   fi
   
   cd sm-pipeline-cdk
-  cdk deploy TenantCdkStack
+  cdk deploy TenantCdkStack --require-approval never
   cd ..
 
 fi  
