@@ -36,7 +36,7 @@ def create_tenant(event, context):
                     'userPoolId': tenant_details['userPoolId'],                 
                     'appClientId': tenant_details['appClientId'],
                     'modelVersion': 0,
-                    # TODO: Lab4 - uncomment below Gold tier code
+                    # TODO: Lab4 - uncomment below Premium tier code
                     # 'dedicatedTenancy': tenant_details['dedicatedTenancy'],
                     'isActive': True
                 }

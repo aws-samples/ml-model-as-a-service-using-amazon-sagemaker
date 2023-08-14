@@ -29,7 +29,7 @@ def create_tenant_admin_user(event, context):
 
     user_mgmt = UserManagement()
     
-    # TODO: Lab4 - uncomment below Gold tier code
+    # TODO: Lab4 - uncomment below Premium tier code
     # if (tenant_details['dedicatedTenancy'] == 'true'):
     #     user_pool_response = user_mgmt.create_user_pool(tenant_id)
     #     user_pool_id = user_pool_response['UserPool']['Id']

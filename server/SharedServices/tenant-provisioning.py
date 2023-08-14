@@ -34,7 +34,7 @@ def provision_tenant(event, context):
     tenant_id = tenant_details['tenantId']
 
     try:
-        # TODO: Lab4 - uncomment below Gold tier code
+        # TODO: Lab4 - uncomment below Premium tier code
         # if (tenant_details['dedicatedTenancy'].upper() == 'TRUE'):
         #     response_ddb = table_tenant_stack_mapping.put_item(
                 

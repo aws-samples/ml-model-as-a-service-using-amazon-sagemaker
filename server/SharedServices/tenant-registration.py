@@ -25,10 +25,10 @@ def register_tenant(event, context):
         tenant_id = shortuuid.uuid().lower()
         tenant_details = json.loads(event['body'])
 
-        # TODO: Lab4 - uncomment below Gold tier code
+        # TODO: Lab4 - uncomment below Premium tier code
         # tenant_details['dedicatedTenancy'] = 'false'
 
-        # if (tenant_details['tenantTier'].upper() == utils.TenantTier.GOLD.value.upper()):
+        # if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
         #     tenant_details['dedicatedTenancy'] = 'true'
         
         tenant_details['tenantId'] = tenant_id

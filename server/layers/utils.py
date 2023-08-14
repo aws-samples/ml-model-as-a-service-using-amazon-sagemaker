@@ -10,8 +10,9 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 from enum import Enum
 
 class TenantTier(Enum):
-    GOLD       = "Gold"
-    Bronze     = "Bronze"
+    BASIC       = "Basic"
+    ADVANCED    = "Advanced"
+    PREMIUM     = "Premium"
 
 
 class StatusCodes(Enum):

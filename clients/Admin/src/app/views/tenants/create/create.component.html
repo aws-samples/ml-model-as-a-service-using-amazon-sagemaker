@@ -31,18 +31,15 @@
         </mat-form-field>
         <mat-form-field>
           <mat-label>Address</mat-label>
-          <input
-            matInput
-            placeholder=""
-            formControlName="tenantAddress"
-          />
+          <input matInput placeholder="" formControlName="tenantAddress" />
         </mat-form-field>
         <mat-form-field appearance="fill">
           <mat-label>Plan</mat-label>
           <select matNativeControl required formControlName="tenantTier">
             <option>Select one...</option>
-            <option value="Bronze">Bronze</option>
-            <!-- <option value="Gold">Gold</option> -->
+            <option value="Basic">Basic</option>
+            <option value="Advanced">Advanced</option>
+            <option value="Premium">Premium</option>
           </select>
         </mat-form-field>
         <mat-card-footer>
@@ -57,15 +54,28 @@
             >
               Submit
             </button>
-            <button mat-raised-button color="warn" [routerLink]="['/tenants']" type="button" *ngIf="!submitting">
+            <button
+              mat-raised-button
+              color="warn"
+              [routerLink]="['/tenants']"
+              type="button"
+              *ngIf="!submitting"
+            >
               Cancel
             </button>
-            <mat-card *ngIf="submitting" style="display: flex; justify-content: center; align-items: center">
+            <mat-card
+              *ngIf="submitting"
+              style="
+                display: flex;
+                justify-content: center;
+                align-items: center;
+              "
+            >
               <mat-progress-spinner
                 color="primary"
                 mode="indeterminate"
                 diameter="15"
-                >
+              >
               </mat-progress-spinner>
             </mat-card>
           </div>

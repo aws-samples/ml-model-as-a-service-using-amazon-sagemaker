@@ -55,6 +55,10 @@ def lambda_handler(event, context):
     tenant_tier = tenant_details['Item']['tenantTier']
     bucket = tenant_details['Item']['s3Bucket']
 
+    if (tenant_tier.upper() == utils.TenantTier.BASIC.value.upper()):
+        logger.error("Error Basic tier tenant admins not allowed to fine tune the model")
+        return authorizer_layer.create_auth_denied_policy(methodArn)
+
     # get keys for tenant user pool to validate
     keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(
         region, userpool_id)
