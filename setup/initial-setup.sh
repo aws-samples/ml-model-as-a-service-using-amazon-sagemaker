@@ -6,7 +6,7 @@ if command -v nvm >/dev/null 2>&1; then
 else
   echo "NVM is not installed. Installing NVM..."
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-  source ~/.bash_profile
+  source /etc/bashrc
   echo "NVM installed successfully."
 fi
 
