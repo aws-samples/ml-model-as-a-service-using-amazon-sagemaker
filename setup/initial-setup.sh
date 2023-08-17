@@ -7,6 +7,9 @@ else
   echo "NVM is not installed. Installing NVM..."
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   source /etc/bashrc
+  #Close and reopen your terminal to start using nvm or run the following to use it now
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
   echo "NVM installed successfully."
 fi
 
