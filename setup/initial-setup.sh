@@ -1,4 +1,18 @@
 #!/bin/bash -e
+
+# Check if NVM is installed
+if command -v nvm >/dev/null 2>&1; then
+  echo "NVM is already installed."
+else
+  echo "NVM is not installed. Installing NVM..."
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+  source ~/.bashrc
+  echo "NVM installed successfully."
+fi
+
+# Verify NVM installation
+nvm --version
+
 . $(echo ~)/.nvm/nvm.sh
 
 #Install python3.8
