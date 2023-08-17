@@ -1,5 +1,5 @@
 #!/bin/bash -e
-. /home/ec2-user/.nvm/nvm.sh
+. $(echo ~)/.nvm/nvm.sh
 
 #Install python3.8
 sudo yum install -y amazon-linux-extras
