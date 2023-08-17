@@ -19,6 +19,7 @@ nvm --version
 . $(echo ~)/.nvm/nvm.sh
 
 #Install python3.8
+sudo yum update -y
 sudo yum install -y amazon-linux-extras
 sudo amazon-linux-extras enable python3.8
 sudo yum install -y python3.8
