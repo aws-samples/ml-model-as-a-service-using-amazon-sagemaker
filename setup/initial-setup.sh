@@ -82,6 +82,6 @@ sudo yum -y install jq-1.5
 python3 -m pip install pylint==2.11.1
 
 #Install python requirements
-python3 -m pip install -r sm-pipeline-cdk/requirements.txt
+python3 -m pip install -r ../server/sm-pipeline-cdk/requirements.txt
  
 echo "Script Completed successfully!"
