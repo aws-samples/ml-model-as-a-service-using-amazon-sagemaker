@@ -27,6 +27,8 @@ def run_document(document_name, instance):
         command_id = response['Command']['CommandId']
         timeout_seconds = 900
         start_time = time.time()
+        # Sleep for 20 seconds to give SSM time to start the execution
+        time.sleep(20)
 
         while True:
             invocation_response = client.list_command_invocations(
