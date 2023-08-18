@@ -24,9 +24,10 @@ if [[ $server -eq 1 ]]; then
   echo "Server code is getting deployed"
   # cd ../server
   REGION=$(aws configure get region)
-
+  echo "Region: $REGION"
 
   DEFAULT_SAM_S3_BUCKET=$(grep s3_bucket samconfig-shared.toml|cut -d'=' -f2 | cut -d \" -f2)
+  echo "DEFAULT_SAM_S3_BUCKET: $DEFAULT_SAM_S3_BUCKET"
   echo "aws s3 ls s3://$DEFAULT_SAM_S3_BUCKET"
   if aws s3 ls "s3://$DEFAULT_SAM_S3_BUCKET"; then
     DEFAULT_SAM_S3_BUCKET_REGION=$(aws s3api get-bucket-location --bucket $DEFAULT_SAM_S3_BUCKET | jq -r ".LocationConstraint")
