@@ -22,7 +22,9 @@ done
 
 if [[ $server -eq 1 ]]; then
   echo "Server code is getting deployed"
-  # cd ../server
+  DEFAULT_SAM_S3_BUCKET=$(grep s3_bucket samconfig-shared.toml|cut -d'=' -f2 | cut -d \" -f2)
+  echo "DEFAULT_SAM_S3_BUCKET: $DEFAULT_SAM_S3_BUCKET"
+  
   REGION=$(aws configure get region)
   echo "Region: $REGION"
 
