@@ -24,7 +24,7 @@ if [[ $server -eq 1 ]]; then
   echo "Server code is getting deployed"
 
   REGION="$AWS_REGION"
-  if [ -z "$aws_region" ]; then
+  if [ -z "$REGION" ]; then
     # AWS_REGION is empty, try to get region using aws configure
     REGION=$(aws configure get region)
   fi
