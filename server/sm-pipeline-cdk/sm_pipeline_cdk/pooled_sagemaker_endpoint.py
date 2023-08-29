@@ -36,7 +36,52 @@ class PooledSageMakerEndpoint(NestedStack):
             }
         )
 
-	## ADD CODE HERE
+        mme_models_bucket = s3.Bucket.from_bucket_attributes(self, "ImportedBucket",
+            bucket_arn=f'arn:aws:s3:::sagemaker-mlaas-pooled-{Aws.REGION}-{Aws.ACCOUNT_ID}'
+        )
+        
+        pooled_multi_model_iam_role = self.create_pooled_multi_model_iam_role(mme_models_bucket)
+        
+        self.attach_sagemaker_bucket_policy(mme_models_bucket, pooled_multi_model_iam_role)
+
+        pooled_multi_model_container = self.generate_pooled_container_definition_property(
+            mme_models_bucket, xgboost_container_mapping.find_in_map(Aws.REGION,"containerImageUri")
+        )
+
+        pooled_sagemaker_multi_model = sagemaker.CfnModel(
+            self,
+            "Pooled-Multi-Model",
+            execution_role_arn=pooled_multi_model_iam_role.role_arn,
+            model_name=f"Pooled-Multi-Model",
+            primary_container=pooled_multi_model_container,
+        )   
+        pooled_sagemaker_multi_model.node.add_dependency(pooled_multi_model_iam_role) 
+
+        model_endpoint_config = sagemaker.CfnEndpointConfig(
+            self,
+            "Endpoint-Config",
+            production_variants=[
+                sagemaker.CfnEndpointConfig.ProductionVariantProperty(
+                    initial_instance_count=INITIAL_INSTANCE_COUNT,
+                    initial_variant_weight=INITIAL_INSTANCE_WEIGHT,
+                    instance_type=INSTANCE_TYPE,
+                    model_name=pooled_sagemaker_multi_model.model_name,
+                    variant_name=f"Variant1",
+                ),
+            ],
+        )
+        model_endpoint_config.node.add_dependency(pooled_sagemaker_multi_model) 
+
+        model_endpoint = sagemaker.CfnEndpoint(
+            self,
+            f"Endpoint",
+            endpoint_config_name=model_endpoint_config.attr_endpoint_config_name,
+            endpoint_name=f"advanced-tier-sagemaker-endpoint",
+        )        
+        model_endpoint.node.add_dependency(model_endpoint_config) 
+        
+        NestedStack.of(self).model_endpoint_name = model_endpoint.endpoint_name
+        
 
     def attach_sagemaker_bucket_policy(
         self, bucket: s3.Bucket, principle_role: iam.Role

@@ -7,6 +7,7 @@ from aws_cdk import (
     CfnOutput,
     aws_apigateway as apigateway,
     aws_lambda as lambda_,
+    Duration,
     aws_lambda_python_alpha as lambda_python,
     aws_iam as iam
 )
@@ -35,6 +36,8 @@ class MlaasApiGateway(Construct):
     def __init__(self, scope: Construct, construct_id: str, bucket_arn: str, tenant_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+
+        # ------------- S3 Uoloader Lambda --------------------------
         # S3 Uploader Lambda Role
         s3_uploader_lambda_role = iam.Role(self, "S3UploaderRole",
                                            role_name=f'mlaas-s3-uploader-role-{tenant_id}-{Aws.REGION}',
@@ -65,6 +68,8 @@ class MlaasApiGateway(Construct):
                                                  layer_version_name="MlaasUploaderLayer"
                                                  )
 
+        
+        # ------------- Authorizer Lambda --------------------------
         # Authorizer Lambda Role
         auth_lambda_role = iam.Role(self, "AuthorizerRole",
                                     role_name=f'mlaas-authorizer-role-{tenant_id}-{Aws.REGION}',
@@ -85,9 +90,6 @@ class MlaasApiGateway(Construct):
             actions=["dynamodb:GetItem"],
             resources=[f"arn:aws:dynamodb:{Aws.REGION}:{Aws.ACCOUNT_ID}:table/MLaaS-TenantDetails"]
         ))
-
-        # ABAC for pooled tenants
-        # if (tenant_id == 'pooled'):
 
         abac_tenant_access_policy = iam.Policy(self, "AbacTenantAccessAPolicy",
                                                policy_name="abac-mlaas-tenant-access-policy",
@@ -171,6 +173,81 @@ class MlaasApiGateway(Construct):
 
                                                             )
 
+
+        inference_request_processor_lambda_role = iam.Role(self, "InferenceRequestProcessorRole",
+            role_name=f'mlaas-infer-req-pro-role-{tenant_id}-{Aws.REGION}',
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+            managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorCloudWatchLambdaInsightsExecutionRolePolicy",
+                                                                            managed_policy_arn="arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"),
+                              iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorAWSLambdaBasicExecutionRole",
+                                                                            managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"),
+                              iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorAmazonSageMakerFullAccess",
+                                                                            managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")])
+                                                                            
+        # layer = lambda_python.PythonLayerVersion(self, "MyLayer",
+        #     entry="../layers/",
+        #     compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+        #     license="Apache-2.0",
+        #     description="MLaaS utilities",
+        #     layer_version_name="MlaasUploaderLayer"
+        # )         
+                                                                            
+        # ------------- Basic Tier Tenant Infrastructure --------------------------
+        lambda_basic_tier_inference_request_processor = lambda_.Function(
+            self,
+            f"BasicTierRequestProcessorLambdaFn",
+            function_name=f"mlaas-basic-tier-request-processor-{tenant_id}-{Aws.REGION}",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            handler="basic_advanced_tier_request_processor.lambda_handler",
+            timeout = Duration.minutes(2),
+            code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
+            role=inference_request_processor_lambda_role,            
+            environment={
+                "ENDPOINT_NAME": "basic-tier-sagemaker-endpoint"
+            }            
+        ) 
+
+        lambda_basic_tier_auth = lambda_python.PythonFunction(
+            self, 
+            "BasicTierAuthorizerLambdaFn",
+            entry="../sm-pipeline-cdk/functions",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            index="basic_advanced_tier_tenant_authorizer.py",
+            handler="lambda_handler",
+            function_name=f"mlaas-basic-tier-api-authorizer-{tenant_id}-{Aws.REGION}-sagemaker",
+            role=auth_lambda_role,
+            layers=[layer]
+        )
+
+        # ------------- Advanced Tier Tenant Infrastructure --------------------------
+
+        lambda_advanced_tier_inference_request_processor = lambda_.Function(
+            self,
+            f"AdvTierRequestProcessorLambdaFn",
+            function_name=f"mlaas-adv-tier-request-processor-{tenant_id}-{Aws.REGION}",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            handler="basci_advanced_tier_request_processor.lambda_handler",
+            timeout = Duration.minutes(2),
+            code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
+            role=inference_request_processor_lambda_role,            
+            environment={
+                "ENDPOINT_NAME": "advanced-tier-sagemaker-endpoint"
+            }            
+        ) 
+        
+        lambda_advanced_tier_auth = lambda_python.PythonFunction(
+            self, 
+            "AdvTierAuthorizerLambdaFn",
+            entry="../sm-pipeline-cdk/functions",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            index="basic_advanced_tier_tenant_authorizer.py",
+            handler="lambda_handler",
+            function_name=f"mlaas-adv-tier-api-authorizer-{tenant_id}-{Aws.REGION}-sagemaker",
+            role=auth_lambda_role,
+            layers=[layer]
+        )
+        
+        # ------------- API Gateway --------------------------
         # Create API gateway
         api_gateway = apigateway.RestApi(self, "TenantAPIGateway", 
             rest_api_name = f"mlaas-api-gateway-{tenant_id}-{Aws.REGION}",
@@ -182,6 +259,7 @@ class MlaasApiGateway(Construct):
         # Create API Lambda Token Authorizer
         s3_uploader_api_auth = apigateway.TokenAuthorizer(self, "s3UploadAuthorizer", handler=auth_lambda)
 
+        # JWT API
         jwt.add_method(
              "GET",
              apigateway.LambdaIntegration(
@@ -194,6 +272,7 @@ class MlaasApiGateway(Construct):
              ]
         )
         
+        # Upload API
         upload = api_gateway.root.add_resource("upload")
         upload.add_method(
              "PUT",
@@ -203,8 +282,34 @@ class MlaasApiGateway(Construct):
         
         deployment = apigateway.Deployment(self, "Deployment", 
             api=api_gateway,
-        )  
+        )
+
+        # Basic Tier Inference API
+        basic_tier_inference_api = api_gateway.root.add_resource("basic_inference")  
         
+        basic_tier_inference_api_auth = apigateway.TokenAuthorizer(self, "basicTierInferenceAuthorizer",
+            handler=lambda_basic_tier_auth
+        )
+        
+        basic_tier_inference_api_method = basic_tier_inference_api.add_method(
+            "POST",
+            apigateway.LambdaIntegration(handler=lambda_basic_tier_inference_request_processor,proxy=True),
+            authorizer = basic_tier_inference_api_auth
+        )    
+        
+        # Advanced Tier Inference API
+        advanced_tier_inference_api = api_gateway.root.add_resource("advanced_inference")  
+        
+        advanced_tier_inference_api_auth = apigateway.TokenAuthorizer(self, "advancedTierInferenceAuthorizer",
+            handler=lambda_advanced_tier_auth
+        )
+        
+        advanced_tier_inference_api_method = advanced_tier_inference_api.add_method(
+            "POST",
+            apigateway.LambdaIntegration(handler=lambda_advanced_tier_inference_request_processor,proxy=True),
+            authorizer = advanced_tier_inference_api_auth
+        )    
+
         apiStage = apigateway.Stage(self, "V1",
             deployment=deployment,
             stage_name="v1"

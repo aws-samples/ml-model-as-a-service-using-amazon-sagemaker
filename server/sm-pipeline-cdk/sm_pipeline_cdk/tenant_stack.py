@@ -28,13 +28,10 @@ from constructs import Construct
 from sm_pipeline_cdk.api_gateway import MlaasApiGateway
 from sm_pipeline_cdk.waf_rules import Waf
 
-# LAB3 changes
-# from sm_pipeline_cdk.pooled_sagemaker_endpoint import PooledSageMakerEndpoint
-# from sm_pipeline_cdk.pooled_sagemaker_infrastructure import PooledSageMakerInfrastructure
+from sm_pipeline_cdk.pooled_sagemaker_endpoint import PooledSageMakerEndpoint
 
-# LAB4 changes
-# from sm_pipeline_cdk.dedicated_sagemaker_infrastructure import DedicatedSageMakerInfrastructure
-# from sm_pipeline_cdk.dedicated_sagemaker_endpoint import DedicatedSageMakerEndpoint
+from sm_pipeline_cdk.dedicated_sagemaker_infrastructure import DedicatedSageMakerInfrastructure
+from sm_pipeline_cdk.dedicated_sagemaker_endpoint import DedicatedSageMakerEndpoint
 
 class TenantCdkStack(Stack):
     
@@ -100,38 +97,32 @@ class TenantCdkStack(Stack):
             )
             )
             tenant_iam_role = s3_tenant_iam_role
-            # LAB 3 changes
-            # pooled_sagemaker_endpoint_stack = PooledSageMakerEndpoint(self, "PooledSageMakerEndpoint")
-            # pooloed_samgemaker_infrastructure_stack = PooledSageMakerInfrastructure(self, "PooledSageMakerInfrastructure", 
-            # endpoint_name = pooled_sagemaker_endpoint_stack.model_endpoint_name, 
-            # api_gateway_id = tenant_api_gateway._api_gateway_id,
-            # api_gateway_root_resource_id = tenant_api_gateway._api_gateway_root_resource_id)
-        # LAB 4 changes
-        #else:
+            pooled_sagemaker_endpoint_stack = PooledSageMakerEndpoint(self, "PooledSageMakerEndpoint")
+        else:
         
-        #    tenant_iam_role = iam.Role(self, 'SageMakerTenantIamRole',
-        #        role_name=f'mlaas-tenant-role-{tenant_id}-{Aws.REGION}',
-        #        assumed_by=iam.CompositePrincipal(
-        #            iam.ServicePrincipal("sagemaker.amazonaws.com")
-        #        ),
-        #        managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="AmazonSageMakerFullAccess",managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")]
-        #        )
-        #    tenant_iam_role.add_to_policy(iam.PolicyStatement(
-        #    actions=["s3:PutObject", "s3:GetObject","s3:ListBucket", "s3:DeleteObject"],
-        #    resources=[f"arn:aws:s3:::{bucket.bucket_name}",
-        #               f"arn:aws:s3:::{bucket.bucket_name}/*",    
-        #               f"arn:aws:s3::::{sm_bucket.bucket_name}",
-        #               f"arn:aws:s3::::{sm_bucket.bucket_name}/*"]
-        #    )
-        #    )    
-        #    dedicated_samgemaker_endpoint_stack = DedicatedSageMakerEndpoint(self, "DedicatedSageMakerEndpoint", bucket_arn=sm_bucket.bucket_arn, tenant_id=tenant_id, tenant_iam_role=tenant_iam_role)
+            tenant_iam_role = iam.Role(self, 'SageMakerTenantIamRole',
+                role_name=f'mlaas-tenant-role-{tenant_id}-{Aws.REGION}',
+                assumed_by=iam.CompositePrincipal(
+                    iam.ServicePrincipal("sagemaker.amazonaws.com")
+                ),
+                managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="AmazonSageMakerFullAccess",managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")]
+                )
+            tenant_iam_role.add_to_policy(iam.PolicyStatement(
+            actions=["s3:PutObject", "s3:GetObject","s3:ListBucket", "s3:DeleteObject"],
+            resources=[f"arn:aws:s3:::{bucket.bucket_name}",
+                       f"arn:aws:s3:::{bucket.bucket_name}/*",    
+                       f"arn:aws:s3::::{sm_bucket.bucket_name}",
+                       f"arn:aws:s3::::{sm_bucket.bucket_name}/*"]
+            )
+            )    
+            dedicated_samgemaker_endpoint_stack = DedicatedSageMakerEndpoint(self, "DedicatedSageMakerEndpoint", bucket_arn=sm_bucket.bucket_arn, tenant_id=tenant_id, tenant_iam_role=tenant_iam_role)
             
-        #    dedicated_samgemaker_infrastructure_stack = DedicatedSageMakerInfrastructure(self, "DedicatedSageMakerInfrastructure", 
-        #         tenant_id = tenant_id, 
-        #         endpoint_name = dedicated_samgemaker_endpoint_stack.model_endpoint_name, 
-        #         sagemaker_model_bucket_name = sm_bucket.bucket_name,
-        #         api_gateway_id = tenant_api_gateway._api_gateway_id,
-        #         api_gateway_root_resource_id = tenant_api_gateway._api_gateway_root_resource_id)
+            dedicated_samgemaker_infrastructure_stack = DedicatedSageMakerInfrastructure(self, "DedicatedSageMakerInfrastructure", 
+                 tenant_id = tenant_id, 
+                 endpoint_name = dedicated_samgemaker_endpoint_stack.model_endpoint_name, 
+                 sagemaker_model_bucket_name = sm_bucket.bucket_name,
+                 api_gateway_id = tenant_api_gateway._api_gateway_id,
+                 api_gateway_root_resource_id = tenant_api_gateway._api_gateway_root_resource_id)
          
 
         # Custom Resource to Write Details to DynamoDB
@@ -191,7 +182,6 @@ class TenantCdkStack(Stack):
         update_tenant_details_custom_resource.node.add_dependency(tenant_api_gateway)         
         
         # Lab 2 - Configure Event Bridge Rule
-        '''
         rule_s3_object_created = events.Rule(self, "rule", rule_name=f's3rule-{tenant_id}-{Aws.REGION}',
                                     event_pattern=events.EventPattern(
                                     source=["aws.s3"],
@@ -205,13 +195,10 @@ class TenantCdkStack(Stack):
                             )
 
         queue = sqs.Queue(self, "Queue")
-        '''
-        
 
         # Lab 2 - Configure Lambda Function
         # Lambda IAM Role and Policies
 
-        '''
         lambda_pipe_exec_iam_role = iam.Role(self, 'LambdaPipeExecRole',
         role_name=f'mlaas-pipe-exec-lambda-role-{tenant_id}-{Aws.REGION}',
         assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
@@ -221,23 +208,17 @@ class TenantCdkStack(Stack):
             iam.ManagedPolicy.from_managed_policy_arn(self, id="lambda_AWSCloudFormationReadOnlyAccess",managed_policy_arn="arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess")
             ]
         )
-        '''
 
-        '''
         lambda_pipe_exec_iam_role.add_to_policy(iam.PolicyStatement(
             actions=["sts:AssumeRole"],
             resources=["*"]
             )
         )
-        '''
 
-        '''
         dynamodb_access_role=iam.Role(self, "MLaaSDynamoDBAccessRole",
                                                         role_name=f'ml-saas-db-access-role-{tenant_id}-{Aws.REGION}',
                                                         assumed_by=iam.ArnPrincipal(lambda_pipe_exec_iam_role.role_arn))
-        '''
         
-        '''
         if (tenant_id == "pooled"):
             tenant_iam_role.assume_role_policy.add_statements(iam.PolicyStatement(
                 actions=["sts:AssumeRole","sts:TagSession"],
@@ -288,10 +269,8 @@ class TenantCdkStack(Stack):
                  }
              )
              )
-        '''
         
         # Add Lambda Definition Here
-        '''
         fn_execute_pipeline = python_lambda.PythonFunction(self, "ExecuteSMPipelineFn",
             runtime=lambda_.Runtime.PYTHON_3_9,
             entry="functions",
@@ -302,10 +281,8 @@ class TenantCdkStack(Stack):
             environment={"dynamodb_access_role_arn":dynamodb_access_role.role_arn, "tenant_type":f"{tenant_id}"},
             function_name=f'SMPipelineExeFunction-{tenant_id}-{Aws.REGION}'
         )
-        '''
         
         # Configure the Lambda Function as the Traget for the Event Bridge Rule
-        '''
         rule_s3_object_created.add_target(targets.LambdaFunction(fn_execute_pipeline,
                                         dead_letter_queue=queue,  # Optional: add a dead letter queue
                                         # Optional: set the maxEventAge retry policy
@@ -313,7 +290,6 @@ class TenantCdkStack(Stack):
                                         retry_attempts=2
                                     )
         )
-        '''
         
         CfnOutput(self, "APIGatewayURL", value=tenant_api_gateway.api_gateway_url)
         CfnOutput(self, "APIGatewayID", value=tenant_api_gateway.api_gateway_id)

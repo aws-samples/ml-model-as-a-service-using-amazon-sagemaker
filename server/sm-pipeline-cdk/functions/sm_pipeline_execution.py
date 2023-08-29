@@ -128,10 +128,11 @@ def handler(event, context):
         
 
     ''' Create a pipeline exeution from the pipeline template '''
-    proj_desc = sm.describe_project(
-        ProjectName=sm_projectname
-    )
-    pipeline_name = proj_desc['ProjectName'] + "-" + proj_desc['ProjectId']
+    # proj_desc = sm.describe_project(
+    #    ProjectName=sm_projectname
+    # )
+    # pipeline_name = proj_desc['ProjectName'] + "-" + proj_desc['ProjectId']
+    pipeline_name = "HousingPipeline"
     print("## pipeline_name: " + pipeline_name)
 
     response = sm.start_pipeline_execution(
