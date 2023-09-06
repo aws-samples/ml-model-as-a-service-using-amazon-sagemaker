@@ -40,8 +40,10 @@ class SageMakerRoles(Construct):
             assumed_by=iam.ServicePrincipal('sagemaker.amazonaws.com'),
 		    role_name=f"AmazonSagemakerExecutionRole-ml-saas-workshop-{Aws.REGION}",
             path="/service-role/",
-		    managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self,id="SagemakerFullAccess",
-                managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")
+		    managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self,id="AmazonSagemakerFullAccess",
+                managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"),
+                iam.ManagedPolicy.from_managed_policy_arn(self,id="AmazonDynamoDBFullAccess",
+                managed_policy_arn="arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess")
                 ])
         
         sm_execution_role.add_to_policy(iam.PolicyStatement(

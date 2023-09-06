@@ -14,8 +14,6 @@ from aws_cdk import (
 
 from constructs import Construct
 from .sagemaker_roles import SageMakerRoles
-from .sagemaker_service_catalogue import SageMakerServiceCatalogue
-from .sagemaker_project import SageMakerProject
 
 class SmPipelineCdkStack(Stack):
     
@@ -23,9 +21,6 @@ class SmPipelineCdkStack(Stack):
     def sm_domain_id(self):
         return self._sm_domain_id
 
-    @property
-    def service_catalog_portfolio_id(self):
-        return self._service_catalog_portfolio_id
 
     def __init__(self, scope: Construct, construct_id: str, vpc_id: str, public_subnet_ids: list , **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -52,9 +47,6 @@ class SmPipelineCdkStack(Stack):
         sagemaker_roles = SageMakerRoles(self, "SageMakerRoles")
         sm_execution_role = sagemaker_roles.sm_execution_role
 
-        sagemaker_service_catalog = SageMakerServiceCatalogue(self, "SageMakerServiceCatalogue", sm_execution_role)
-        self._service_catalog_portfolio_id =sagemaker_service_catalog.service_catalog_portfolio_id
-        
 
         CfnOutput(self, "SageMakerExecutionRoleArn",
                        value=sagemaker_roles.sm_execution_role.role_arn)
@@ -72,9 +64,6 @@ class SmPipelineCdkStack(Stack):
         CfnOutput(self, "SageMakerServiceCatalogProductLaunchRoleArn",
                        value=sagemaker_roles.sm_sc_product_launch_role.role_arn)
         
-        CfnOutput(self, "Service Catalog Portfolio ID", 
-                  value=sagemaker_service_catalog.service_catalog_portfolio_id)
-
         sm_domain = sagemaker.CfnDomain(
             
             self, "Sagemaker_Domain",
@@ -118,17 +107,10 @@ class SmPipelineCdkStack(Stack):
             )
         )
 
-        #Create SageMaker Project
-        sm_project = SageMakerProject(self, "SageMakerProject", self._service_catalog_portfolio_id, self._sm_domain_id)
-
-        CfnOutput(self,"MlaasPoolSagemakerProjectName", 
-                  value=sm_project.sagemaker_project_name, export_name="MlaasPoolSagemakerProjectProjectName")
-
 
         # #Depends on
         cfn_app_pool.node.add_dependency(mlaas_pool_sagemaker_user_profile)
         sm_domain.node.add_dependency(sagemaker_roles)
         mlaas_pool_sagemaker_user_profile.node.add_dependency(sm_domain)
         cfn_app_pool.node.add_dependency(mlaas_pool_sagemaker_user_profile)
-        sm_project.node.add_dependency(sm_domain)
         
