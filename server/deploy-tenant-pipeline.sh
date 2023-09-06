@@ -1,8 +1,13 @@
 #!/bin/bash -e
 
 echo "Deploy tenant pipeline"
-REGION=$(aws configure get region)
-# aws codecommit get-repository --repository-name ml-saas-workshop
+REGION="$AWS_REGION"
+  if [ -z "$REGION" ]; then
+    # AWS_REGION is empty, try to get region using aws configure
+    REGION=$(aws configure get region)
+  fi
+echo "Region: $REGION"
+
 if ! aws codecommit get-repository --repository-name ml-saas-workshop; then
   echo "ml-saas-workshop codecommit repo is not present, will create one now"
   CREATE_REPO=$(aws codecommit create-repository --repository-name ml-saas-workshop --repository-description "ML saas workshop repository")
