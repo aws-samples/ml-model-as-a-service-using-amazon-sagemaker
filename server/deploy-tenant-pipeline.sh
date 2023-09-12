@@ -32,7 +32,7 @@ yarn install && yarn build
 
 cdk bootstrap
 
-if ! cdk deploy; then
+if ! cdk deploy --require-approval never; then
   exit 1
 fi  
 
