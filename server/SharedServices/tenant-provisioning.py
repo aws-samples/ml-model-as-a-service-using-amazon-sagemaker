@@ -34,8 +34,8 @@ def provision_tenant(event, context):
     tenant_id = tenant_details['tenantId']
 
     try:
-        # TODO: Lab4 - uncomment below Premium tier code
-        # if (tenant_details['dedicatedTenancy'].upper() == 'TRUE'):
+        # TODO: Lab3 - uncomment below Premium tier code
+        # if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
         #     response_ddb = table_tenant_stack_mapping.put_item(
                 
         #         Item={
@@ -49,18 +49,20 @@ def provision_tenant(event, context):
         #     logger.info(response_ddb)
         #     # Invoke CI/CD pipeline
         #     response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
-        # else:
-            if (tenant_details['tenantTier'].upper() != utils.TenantTier.BASIC.value.upper()):
-                # Create tenantId prefix in S3 buckets
-                s3bucket_pooled = __get_setting_value('s3bucket-pooled')
-                s3.put_object(Bucket=s3bucket_pooled, Key=''.join([tenant_id, '/']))
 
-                sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
-                s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=''.join([tenant_id, '/']))
+        # else:
+              # TODO: Lab2 - uncomment below Advanced tier code
+        #     if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
+        #         # Create tenantId prefix in S3 buckets
+        #         s3bucket_pooled = __get_setting_value('s3bucket-pooled')
+        #         s3.put_object(Bucket=s3bucket_pooled, Key=''.join([tenant_id, '/']))
+
+        #         sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
+        #         s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=''.join([tenant_id, '/']))
             
-                __update_tenant_details(tenant_id, s3bucket_pooled,
-                                        sagemaker_s3bucket_pooled)
-            else:
+        #         __update_tenant_details(tenant_id, s3bucket_pooled,
+        #                                 sagemaker_s3bucket_pooled)
+        #     else:
                 # For basic tier tenant just update the tenant details table with api gateway url
                 __update_tenant_details(tenant_id) 
 
@@ -71,43 +73,38 @@ def provision_tenant(event, context):
         return utils.create_success_response("Tenant Provisioning Started")
 
 
-def __update_tenant_details(tenant_id, s3bucket_name, sagemaker_s3bucket_name):
+def __update_tenant_details(tenant_id, s3bucket_name="", sagemaker_s3bucket_name=""):
     try:
-        apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
-        s3_bucket_tenant_role_pooled = __get_setting_value('s3bucket-tenant-role-pooled') 
+        if not s3bucket_name:
+            apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
+            response = table_tenant_details.update_item(
+                Key={'tenantId':tenant_id},
+                UpdateExpression="set apiGatewayUrl=:apiGatewayUrl",
+                ExpressionAttributeValues={
+                    ':apiGatewayUrl':apigatewayurl_pooled 
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+        else:
+            apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
+            s3_bucket_tenant_role_pooled = __get_setting_value('s3bucket-tenant-role-pooled') 
 
-        response = table_tenant_details.update_item(
-            Key={'tenantId':tenant_id},
-            UpdateExpression="set s3Bucket=:s3Bucket, apiGatewayUrl=:apiGatewayUrl, s3BucketTenantRole=:s3BucketTenantRole, sagemakerS3Bucket=:sagemakerS3Bucket",
-            ExpressionAttributeValues={
-                ':s3Bucket':s3bucket_name,
-                ':apiGatewayUrl':apigatewayurl_pooled,
-                ':s3BucketTenantRole': s3_bucket_tenant_role_pooled,
-                ':sagemakerS3Bucket': sagemaker_s3bucket_name
-            },
-            ReturnValues="UPDATED_NEW"
-        )
+            response = table_tenant_details.update_item(
+                Key={'tenantId':tenant_id},
+                UpdateExpression="set s3Bucket=:s3Bucket, apiGatewayUrl=:apiGatewayUrl, s3BucketTenantRole=:s3BucketTenantRole, sagemakerS3Bucket=:sagemakerS3Bucket",
+                ExpressionAttributeValues={
+                    ':s3Bucket':s3bucket_name,
+                    ':apiGatewayUrl':apigatewayurl_pooled,
+                    ':s3BucketTenantRole': s3_bucket_tenant_role_pooled,
+                    ':sagemakerS3Bucket': sagemaker_s3bucket_name
+                },
+                ReturnValues="UPDATED_NEW"
+            )
 
     except Exception as e:
         logger.error('Error occured while getting settings and updating tenant details')
         raise Exception('Error occured while getting settings and updating tenant details', e) 
-
-def __update_tenant_details(tenant_id):
-    try:
-        apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
-
-        response = table_tenant_details.update_item(
-            Key={'tenantId':tenant_id},
-            UpdateExpression="set apiGatewayUrl=:apiGatewayUrl",
-            ExpressionAttributeValues={
-                ':apiGatewayUrl':apigatewayurl_pooled 
-            },
-            ReturnValues="UPDATED_NEW"
-        )
-
-    except Exception as e:
-        logger.error('Error occured while getting settings and updating tenant details')
-        raise Exception('Error occured while getting settings and updating tenant details', e)     
+ 
     
 def __get_setting_value(setting_name):
     try:

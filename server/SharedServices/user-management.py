@@ -29,21 +29,20 @@ def create_tenant_admin_user(event, context):
 
     user_mgmt = UserManagement()
     
-    # TODO: Lab4 - uncomment below Premium tier code
-    # if (tenant_details['dedicatedTenancy'] == 'true'):
-    #     user_pool_response = user_mgmt.create_user_pool(tenant_id)
-    #     user_pool_id = user_pool_response['UserPool']['Id']
-    #     logger.info (user_pool_id)
+    if (tenant_details['dedicatedTenancy'] == 'true'):
+        user_pool_response = user_mgmt.create_user_pool(tenant_id)
+        user_pool_id = user_pool_response['UserPool']['Id']
+        logger.info (user_pool_id)
         
-    #     app_client_response = user_mgmt.create_user_pool_client(user_pool_id)
-    #     logger.info(app_client_response)
-    #     app_client_id = app_client_response['UserPoolClient']['ClientId']
-    #     user_pool_domain_response = user_mgmt.create_user_pool_domain(user_pool_id, tenant_id)
+        app_client_response = user_mgmt.create_user_pool_client(user_pool_id)
+        logger.info(app_client_response)
+        app_client_id = app_client_response['UserPoolClient']['ClientId']
+        user_pool_domain_response = user_mgmt.create_user_pool_domain(user_pool_id, tenant_id)
         
-    #     logger.info ("New Tenant Created")
-    # else:
-    user_pool_id = tenant_user_pool_id
-    app_client_id = tenant_app_client_id
+        logger.info ("New Tenant Created")
+    else:
+        user_pool_id = tenant_user_pool_id
+        app_client_id = tenant_app_client_id
 
     #Add tenant admin now based upon user pool
     tenant_user_group_response = user_mgmt.create_user_group(user_pool_id,tenant_id,"User group for tenant {0}".format(tenant_id))
