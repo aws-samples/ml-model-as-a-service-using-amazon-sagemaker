@@ -19,6 +19,11 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+if [[ -z "$email" ]]; then
+    echo "Please provide email address to setup an admin user" 
+    echo "Note: Invoke script without parameters to know the list of script parameters"
+    exit 1  
+fi
 
 if [[ $server -eq 1 ]]; then
   echo "Server code is getting deployed"
@@ -70,7 +75,7 @@ if [[ $server -eq 1 ]]; then
   cd ..
 
   sam build -t shared-template.yaml --use-container
-  sam deploy --config-file samconfig-shared.toml --region=$REGION
+  sam deploy --config-file samconfig-shared.toml --region=$REGION --parameter-overrides AdminEmailParameter=$email
   
   if [[ $? -ne 0 ]]; then
     exit 1
@@ -85,11 +90,6 @@ fi
 ADMIN_SITE_URL=$(aws cloudformation describe-stacks --stack-name mlaas --query "Stacks[0].Outputs[?OutputKey=='AdminAppSite'].OutputValue" --output text)
 
 if [[ $client -eq 1 ]]; then
-  if [[ -z "$email" ]]; then
-    echo "Please provide email address to setup an admin user" 
-    echo "Note: Invoke script without parameters to know the list of script parameters"
-    exit 1  
-  fi
   echo "Client code is getting deployed"
   ADMIN_SITE_BUCKET=$(aws cloudformation describe-stacks --stack-name mlaas --query "Stacks[0].Outputs[?OutputKey=='AdminSiteBucket'].OutputValue" --output text)
   
@@ -100,21 +100,21 @@ if [[ $client -eq 1 ]]; then
   ADMIN_USER_GROUP_NAME=$(aws cloudformation describe-stacks --stack-name mlaas --query "Stacks[0].Outputs[?OutputKey=='CognitoAdminUserGroupName'].OutputValue" --output text)
 
   # Create admin-user in OperationUsers userpool with given input email address
-  CREATE_ADMIN_USER=$(aws cognito-idp admin-create-user \
-  --user-pool-id $ADMIN_USERPOOLID \
-  --username admin-user \
-  --user-attributes Name=email,Value=$email Name=phone_number,Value="+11234567890" Name="custom:userRole",Value="SystemAdmin" Name="custom:tenantId",Value="system_admins" \
-  --desired-delivery-mediums EMAIL)
+  # CREATE_ADMIN_USER=$(aws cognito-idp admin-create-user \
+  # --user-pool-id $ADMIN_USERPOOLID \
+  # --username admin-user \
+  # --user-attributes Name=email,Value=$email Name=phone_number,Value="+11234567890" Name="custom:userRole",Value="SystemAdmin" Name="custom:tenantId",Value="system_admins" \
+  # --desired-delivery-mediums EMAIL)
   
-  echo "$CREATE_ADMIN_USER"
+  # echo "$CREATE_ADMIN_USER"
 
-  # Add admin-user to admin user group
-  ADD_ADMIN_USER_TO_GROUP=$(aws cognito-idp admin-add-user-to-group \
-  --user-pool-id $ADMIN_USERPOOLID \
-  --username admin-user \
-  --group-name $ADMIN_USER_GROUP_NAME)
+  # # Add admin-user to admin user group
+  # ADD_ADMIN_USER_TO_GROUP=$(aws cognito-idp admin-add-user-to-group \
+  # --user-pool-id $ADMIN_USERPOOLID \
+  # --username admin-user \
+  # --group-name $ADMIN_USER_GROUP_NAME)
 
-  echo "$ADD_ADMIN_USER_TO_GROUP"
+  # echo "$ADD_ADMIN_USER_TO_GROUP"
 
   # Configuring admin UI 
 

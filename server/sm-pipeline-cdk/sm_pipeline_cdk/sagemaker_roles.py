@@ -47,11 +47,12 @@ class SageMakerRoles(Construct):
                 ])
         
         sm_execution_role.add_to_policy(iam.PolicyStatement(
-                actions=["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:ListBucket"],
+                actions=["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:ListBucket","cloudformation:DescribeStacks"],
                 resources=["arn:aws:s3:::sagemaker-*",
                            "arn:aws:s3:::sagemaker-*/*"
                             "arn:aws:s3:::mlaas-*",
-                            "arn:aws:s3:::mlaas-*/*"]
+                            "arn:aws:s3:::mlaas-*/*",
+                            "arn:aws:cloudformation:*:*:stack/*/*"]
             ))
         
         self._sm_execution_role = sm_execution_role
