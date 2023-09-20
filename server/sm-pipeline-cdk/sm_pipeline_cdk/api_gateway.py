@@ -129,7 +129,7 @@ class MlaasApiGateway(Construct):
 
         # Token Authorizer Lambda
         auth_lambda = lambda_python.PythonFunction(self, "AuthorizerLambda",
-                                                   entry="../sm-pipeline-cdk/functions",
+                                                   entry="../sm-pipeline-cdk/functions/authorizer",
                                                    runtime=lambda_.Runtime.PYTHON_3_9,
                                                    index="tenant_authorizer.py",
                                                    handler="lambda_handler",
