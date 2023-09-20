@@ -81,7 +81,7 @@ def invoke_pipeline():
     try:
         logger.info("Invoking CI/CD pipeline")
         codepipeline = boto3.client('codepipeline')
-        response = codepipeline.start_pipeline_execution(name='serverless-saas-pipeline')
+        response = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
         return response
     except Exception as e:
         logger.error('Error occured while invoking the pipeline')
