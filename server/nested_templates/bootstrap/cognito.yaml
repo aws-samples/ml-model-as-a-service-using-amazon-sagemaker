@@ -12,7 +12,7 @@ Parameters:
   SystemAdminRoleNameParameter:
     Type: String
     Description: "Enter the role name for system admin"
-  AdminUserPoolCallbackURLParameter: 
+  AdminUserPoolCallbackURLParameter:
     Type: String
     Description: "Enter Admin Management userpool call back url"
 Resources:
@@ -32,16 +32,16 @@ Resources:
           Required: True
           Mutable: True
         - AttributeDataType: "String"
-          Name: tenantId          
+          Name: tenantId
         - AttributeDataType: "String"
           Name: userRole
           Required: False
-          Mutable: True        
+          Mutable: True
   CognitoUserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
       ClientName: MLaaSClient
-      ExplicitAuthFlows: 
+      ExplicitAuthFlows:
         - ALLOW_CUSTOM_AUTH
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
@@ -54,7 +54,7 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
       CallbackURLs:
-        - !Join ["",["https://","example.com", "/"]]
+        - !Join ["", ["https://", "example.com", "/"]]
       AllowedOAuthScopes:
         - email
         - openid
@@ -62,11 +62,11 @@ Resources:
       WriteAttributes:
         - "email"
         - "custom:tenantId"
-        - "custom:userRole"        
+        - "custom:userRole"
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: !Join ["-", [pooledtenant-mlaas,!Ref "AWS::AccountId"]]
+      Domain: !Join ["-", [pooledtenant-mlaas, !Ref "AWS::AccountId"]]
       UserPoolId: !Ref CognitoUserPool
 
   CognitoOperationUsersUserPool:
@@ -79,33 +79,38 @@ Resources:
         RecoveryMechanisms:
           - Name: verified_email
             Priority: 1
-      AdminCreateUserConfig:      
+      AdminCreateUserConfig:
         InviteMessageTemplate:
-          EmailMessage: !Join 
-            - "" 
-            - - "Login into admin UI application at " 
-              - "https://"
-              - !Ref AdminUserPoolCallbackURLParameter 
-              - "/" 
-              - " with username {username} and temporary password {####}"
-          EmailSubject: !Join 
+          EmailMessage: !Join
             - ""
-            - - "Your temporary password for admin UI application"  
+            - - "Login into admin UI application at "
+              - "https://"
+              - !Ref AdminUserPoolCallbackURLParameter
+              - "/"
+              - " with username {username} and temporary password {####}"
+          EmailSubject: !Join
+            - ""
+            - - "Your temporary password for admin UI application"
       Schema:
         - AttributeDataType: "String"
           Name: email
           Required: True
           Mutable: True
         - AttributeDataType: "String"
-          Name: tenantId        
+          Name: tenantId
         - AttributeDataType: "String"
           Name: userRole
           Required: False
-          Mutable: True  
+          Mutable: True
   CognitoOperationUsersUserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
       ClientName: MLaaSOperationUsersPoolClient
+      ExplicitAuthFlows:
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
       GenerateSecret: false
       UserPoolId: !Ref CognitoOperationUsersUserPool
       AllowedOAuthFlowsUserPoolClient: True
@@ -115,9 +120,9 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
       CallbackURLs:
-        - !Join ["",["https://", !Ref AdminUserPoolCallbackURLParameter, "/"]]
-      LogoutURLs:  
-        - !Join ["",["https://", !Ref AdminUserPoolCallbackURLParameter, "/"]]
+        - !Join ["", ["https://", !Ref AdminUserPoolCallbackURLParameter, "/"]]
+      LogoutURLs:
+        - !Join ["", ["https://", !Ref AdminUserPoolCallbackURLParameter, "/"]]
       AllowedOAuthScopes:
         - email
         - openid
@@ -129,7 +134,7 @@ Resources:
   CognitoOperationUsersUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: !Join ["-", [operationsusers-mlaas,!Ref "AWS::AccountId"]]
+      Domain: !Join ["-", [operationsusers-mlaas, !Ref "AWS::AccountId"]]
       UserPoolId: !Ref CognitoOperationUsersUserPool
   CognitoAdminUserGroup:
     Type: AWS::Cognito::UserPoolGroup
@@ -154,12 +159,12 @@ Resources:
           Value: !Ref SystemAdminRoleNameParameter
       UserPoolId: !Ref CognitoOperationUsersUserPool
   CognitoAddUserToGroup:
-      Type: AWS::Cognito::UserPoolUserToGroupAttachment
-      Properties:
-        GroupName: !Ref CognitoAdminUserGroup
-        Username: !Ref CognitoAdminUser
-        UserPoolId: !Ref CognitoOperationUsersUserPool
-        
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    Properties:
+      GroupName: !Ref CognitoAdminUserGroup
+      Username: !Ref CognitoAdminUser
+      UserPoolId: !Ref CognitoOperationUsersUserPool
+
 Outputs:
   CognitoUserPoolId:
     Value: !Ref CognitoUserPool
@@ -172,4 +177,4 @@ Outputs:
   CognitoOperationUsersUserPoolProviderURL:
     Value: !GetAtt CognitoOperationUsersUserPool.ProviderURL
   CognitoAdminUserGroupName:
-    Value: !Ref CognitoAdminUserGroup  
+    Value: !Ref CognitoAdminUserGroup
