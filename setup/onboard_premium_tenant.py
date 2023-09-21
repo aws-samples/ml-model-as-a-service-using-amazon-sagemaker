@@ -4,6 +4,7 @@ import argparse
 import boto3
 import requests
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +38,10 @@ def register_tenant(tenant_details):
         
         print(url)
         print(tenant_details)
-        response = requests.post(url+'registration', data=tenant_details) 
+        response = requests.post(url+'registration', data=json.dumps(tenant_details)) 
+        print(response.status_code)
         response_json = response.json()
+        print(response_json)
         return response_json
     except Exception as e:
         logger.error('Error occured while calling the register tenant  service')
