@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 def onboard_tenant(tenant_details):
 
     try:
+        tenant_details = json.loads(tenant_details)
         outputs = get_cft_outputs()
         cognito_client = boto3.client('cognito-idp')
         create_user_response = create_saas_admin_user(cognito_client, tenant_details, outputs)
