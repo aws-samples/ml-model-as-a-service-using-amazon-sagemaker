@@ -23,7 +23,7 @@ def onboard_tenant(tenant_details):
 def register_tenant(tenant_details):
     
     try:
-        logger.info("Create SaaS admin")
+        logger.info("Onboarding the tenant")
         url=None
         cft_client = boto3.client('cloudformation')
         stack_response = cft_client.describe_stacks(StackName='mlaas')
@@ -34,6 +34,8 @@ def register_tenant(tenant_details):
                 url = output['OutputValue']
                 break
         
+        logger.info(url)
+        logger.info(tenant_details)
         response = requests.post(url+'registration', data=tenant_details) 
         response_json = response.json()
         return response_json
