@@ -5,7 +5,7 @@ import boto3
 import requests
 import logging
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 def onboard_tenant(tenant_details):
 
@@ -24,6 +24,7 @@ def register_tenant(tenant_details):
     
     try:
         logger.info("Onboarding the tenant")
+        print("Onboarding the tenant")
         url=None
         cft_client = boto3.client('cloudformation')
         stack_response = cft_client.describe_stacks(StackName='mlaas')
@@ -34,8 +35,8 @@ def register_tenant(tenant_details):
                 url = output['OutputValue']
                 break
         
-        logger.info(url)
-        logger.info(tenant_details)
+        print(url)
+        print(tenant_details)
         response = requests.post(url+'registration', data=tenant_details) 
         response_json = response.json()
         return response_json
