@@ -38,7 +38,48 @@ class DedicatedSageMakerEndpoint(NestedStack):
             }
         )  
         
-    ## ADD CODE HERE
+        mlaas_application_bucket = s3.Bucket.from_bucket_attributes(self, 
+            "ImportedBucket",
+            bucket_arn=f'arn:aws:s3:::sagemaker-mlaas-pooled-{Aws.REGION}-{Aws.ACCOUNT_ID}'
+        )
+        
+        tenant_model_container = self.generate_container_definition_property(mlaas_application_bucket, 
+            xgboost_container_mapping.find_in_map(Aws.REGION,"containerImageUri"))
+            
+        tenant_model = sagemaker.CfnModel(
+            self,
+            f'SageMaker-Model',
+            execution_role_arn=tenant_iam_role.role_arn,
+            model_name=f'{tenant_id}-SageMaker-Model-Sample',
+            primary_container=tenant_model_container,
+        )
+        
+        model_endpoint_config = sagemaker.CfnEndpointConfig(
+            self,
+            "Endpoint-Config",
+            endpoint_config_name=f'{tenant_id}-EndpointConfig-Sample',
+            production_variants=[
+                sagemaker.CfnEndpointConfig.ProductionVariantProperty(
+                    initial_instance_count=INITIAL_INSTANCE_COUNT,
+                    initial_variant_weight=INITIAL_INSTANCE_WEIGHT,
+                    instance_type=INSTANCE_TYPE,
+                    model_name=tenant_model.model_name,
+                    variant_name=f"Variant0",
+                ),
+            ],
+        )
+        model_endpoint_config.node.add_dependency(tenant_model)
+        
+        model_endpoint = sagemaker.CfnEndpoint(
+            self,
+            f"SageMaker-Endpoint",
+            endpoint_config_name=model_endpoint_config.attr_endpoint_config_name,
+            endpoint_name=f'{tenant_id}-SageMaker-Endpoint',
+        )        
+        model_endpoint.node.add_dependency(model_endpoint_config)
+        
+        NestedStack.of(self).model_endpoint_name = model_endpoint.endpoint_name
+        
         
     def generate_container_definition_property(self, models_bucket: s3.Bucket, container_image_uri: str) -> sagemaker.CfnModel.ContainerDefinitionProperty:
             """
