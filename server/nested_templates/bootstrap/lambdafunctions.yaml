@@ -10,9 +10,9 @@ Parameters:
     Type: String
   CognitoOperationUsersUserPoolClientId:
     Type: String
-  CognitoUserPoolId: 
+  CognitoUserPoolId:
     Type: String
-  CognitoUserPoolClientId: 
+  CognitoUserPoolClientId:
     Type: String
   TenantDetailsTableArn:
     Type: String
@@ -27,7 +27,7 @@ Parameters:
   SettingsTableArn:
     Type: String
   SettingsTableName:
-    Type: String      
+    Type: String
 Globals:
   Function:
     Timeout: 29
@@ -35,9 +35,9 @@ Globals:
       - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
     Environment:
       Variables:
-        LOG_LEVEL: DEBUG        
+        LOG_LEVEL: DEBUG
         POWERTOOLS_METRICS_NAMESPACE: "MLaaS"
-        
+
 Resources:
   MLaaSLayers:
     Type: AWS::Serverless::LayerVersion
@@ -54,10 +54,10 @@ Resources:
 
   #Tenant Authorizer
   AuthorizerExecutionRole:
-    Type: AWS::IAM::Role     
+    Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub mlaas-authorizer-execution-role-${AWS::Region}
-      Path: '/'
+      Path: "/"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -67,40 +67,40 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy    
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess   
-      Policies:      
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+      Policies:
         - PolicyName: authorizer-execution-policy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
-                  - cognito-idp:List*                                    
+                  - cognito-idp:List*
                 Resource:
-                  - !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*    
+                  - !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*
               - Effect: Allow
                 Action:
                   - dynamodb:GetItem
                 Resource:
-                  - !Ref TenantDetailsTableArn    
+                  - !Ref TenantDetailsTableArn
   AuthorizerAccessRole:
     Type: AWS::IAM::Role
     DependsOn: AuthorizerExecutionRole
     Properties:
       RoleName: !Sub mlaas-authorizer-access-role-${AWS::Region}
-      Path: '/'
+      Path: "/"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
               AWS:
-                - !GetAtt 'AuthorizerExecutionRole.Arn'
+                - !GetAtt "AuthorizerExecutionRole.Arn"
             Action:
-              - sts:AssumeRole       
+              - sts:AssumeRole
       Policies:
         - PolicyName: authorizer-access-role-policy
           PolicyDocument:
@@ -108,17 +108,17 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - dynamodb:BatchGetItem     
+                  - dynamodb:BatchGetItem
                   - dynamodb:GetItem
                   - dynamodb:PutItem
                   - dynamodb:DeleteItem
                   - dynamodb:UpdateItem
                   - dynamodb:Query
-                  - dynamodb:Scan     
-                Resource:  
+                  - dynamodb:Scan
+                Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
   SharedServicesAuthorizerFunction:
-    Type: AWS::Serverless::Function 
+    Type: AWS::Serverless::Function
     DependsOn: AuthorizerAccessRole
     Properties:
       CodeUri: ../../Resources/
@@ -127,13 +127,13 @@ Resources:
       Role: !GetAtt AuthorizerExecutionRole.Arn
       MemorySize: 256
       Tracing: Active
-      Layers: 
+      Layers:
         - !Ref MLaaSLayers
       Environment:
         Variables:
           OPERATION_USERS_USER_POOL: !Ref CognitoOperationUsersUserPoolId
           OPERATION_USERS_APP_CLIENT: !Ref CognitoOperationUsersUserPoolClientId
-          
+
   CreateUserLambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -147,9 +147,9 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action:
-              - sts:AssumeRole          
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy    
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
       Policies:
@@ -178,7 +178,7 @@ Resources:
       CodeUri: ../../SharedServices/
       Handler: user-management.create_tenant_admin_user
       Runtime: python3.9
-      Role: !GetAtt CreateUserLambdaExecutionRole.Arn      
+      Role: !GetAtt CreateUserLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
         - !Ref MLaaSLayers
@@ -186,8 +186,8 @@ Resources:
         Variables:
           TENANT_USER_POOL_ID: !Ref CognitoUserPoolId
           TENANT_APP_CLIENT_ID: !Ref CognitoUserPoolClientId
-          POWERTOOLS_SERVICE_NAME: "UserManagement.CreateTenantAdmin"             
-  
+          POWERTOOLS_SERVICE_NAME: "UserManagement.CreateTenantAdmin"
+
   #Tenant Management
   TenantManagementLambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -203,8 +203,8 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy    
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
       Policies:
@@ -220,8 +220,8 @@ Resources:
                   - dynamodb:Scan
                   - dynamodb:Query
                 Resource:
-                  - !Ref TenantDetailsTableArn  
-                  - !Join ["", [!Ref TenantDetailsTableArn, '/index/*']]                
+                  - !Ref TenantDetailsTableArn
+                  - !Join ["", [!Ref TenantDetailsTableArn, "/index/*"]]
   CreateTenantFunction:
     Type: AWS::Serverless::Function
     DependsOn: TenantManagementLambdaExecutionRole
@@ -236,7 +236,7 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: "TenantManagement.CreateTenant"
-               
+
   GetTenantsFunction:
     Type: AWS::Serverless::Function
     DependsOn: TenantManagementLambdaExecutionRole
@@ -247,8 +247,8 @@ Resources:
       Role: !GetAtt TenantManagementLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers              
-  
+        - !Ref MLaaSLayers
+
   #Tenant Registration
   RegisterTenantLambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -264,10 +264,10 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy    
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess      
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
   RegisterTenantFunction:
     Type: AWS::Serverless::Function
     DependsOn: RegisterTenantLambdaExecutionRole
@@ -284,8 +284,8 @@ Resources:
           CREATE_TENANT_ADMIN_USER_RESOURCE_PATH: "/user/tenant-admin"
           CREATE_TENANT_RESOURCE_PATH: "/tenant"
           PROVISION_TENANT_RESOURCE_PATH: "/provisioning"
-          POWERTOOLS_SERVICE_NAME: "TenantRegistration.RegisterTenant"     
-  
+          POWERTOOLS_SERVICE_NAME: "TenantRegistration.RegisterTenant"
+
   #Tenant Provisioning
   ProvisionTenantLambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -301,8 +301,8 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy    
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
@@ -313,35 +313,41 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - dynamodb:PutItem      
-                  - dynamodb:DeleteItem                  
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
                 Resource:
                   - !Ref TenantStackMappingTableArn
               - Effect: Allow
                 Action:
-                  - dynamodb:UpdateItem                       
+                  - dynamodb:UpdateItem
                 Resource:
                   - !Ref TenantDetailsTableArn
               - Effect: Allow
                 Action:
-                  - dynamodb:GetItem                       
+                  - dynamodb:GetItem
                 Resource:
                   - !Ref SettingsTableArn
               - Effect: Allow
                 Action:
-                  - s3:PutObject                       
-                Resource: "*"   
+                  - s3:PutObject
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - events:PutRule
+                  - events:PutTargets
+                Resource:
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
               - Effect: Allow
                 Action:
                   - iam:CreateRole
                   - iam:PutRolePolicy
-                  - iam:AttachRolePolicy                       
-                Resource: "*"            
+                  - iam:AttachRolePolicy
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - codepipeline:StartPipelineExecution
                 Resource:
-                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:ml-saas-pipeline                   
+                  - !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:ml-saas-pipeline
   ProvisionTenantFunction:
     Type: AWS::Serverless::Function
     DependsOn: ProvisionTenantLambdaExecutionRole
@@ -354,11 +360,11 @@ Resources:
       Layers:
         - !Ref MLaaSLayers
       Environment:
-        Variables: 
+        Variables:
           TENANT_STACK_MAPPING_TABLE_NAME: !Ref TenantStackMappingTableName
           SYSTEM_SETTINGS_TABLE_NAME: !Ref SettingsTableName
           TENANT_DETAILS_TABLE_NAME: !Ref TenantDetailsTableName
-         
+
   UpdateTenantStackMapTableLambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -373,8 +379,8 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns: 
-        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy    
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
       Policies:
@@ -394,25 +400,24 @@ Resources:
       Handler: update_tenantstackmap_table.handler
       Runtime: python3.9
       Role: !GetAtt UpdateTenantStackMapTableLambdaExecutionRole.Arn
-      Layers: 
-          - !Ref MLaaSLayers        
+      Layers:
+        - !Ref MLaaSLayers
 Outputs:
-  RegisterTenantLambdaExecutionRoleArn: 
-    Value: !GetAtt RegisterTenantLambdaExecutionRole.Arn          
-  TenantManagementLambdaExecutionRoleArn: 
-    Value: !GetAtt TenantManagementLambdaExecutionRole.Arn          
-  RegisterTenantFunctionArn: 
+  RegisterTenantLambdaExecutionRoleArn:
+    Value: !GetAtt RegisterTenantLambdaExecutionRole.Arn
+  TenantManagementLambdaExecutionRoleArn:
+    Value: !GetAtt TenantManagementLambdaExecutionRole.Arn
+  RegisterTenantFunctionArn:
     Value: !GetAtt RegisterTenantFunction.Arn
-  ProvisionTenantFunctionArn: 
+  ProvisionTenantFunctionArn:
     Value: !GetAtt ProvisionTenantFunction.Arn
-  GetTenantsFunctionArn: 
+  GetTenantsFunctionArn:
     Value: !GetAtt GetTenantsFunction.Arn
-  CreateTenantFunctionArn: 
+  CreateTenantFunctionArn:
     Value: !GetAtt CreateTenantFunction.Arn
-  CreateTenantAdminUserFunctionArn: 
+  CreateTenantAdminUserFunctionArn:
     Value: !GetAtt CreateTenantAdminUserFunction.Arn
-  SharedServicesAuthorizerFunctionArn: 
-    Value: !GetAtt SharedServicesAuthorizerFunction.Arn      
+  SharedServicesAuthorizerFunctionArn:
+    Value: !GetAtt SharedServicesAuthorizerFunction.Arn
   UpdateTenantStackMapTableFunctionArn:
     Value: !GetAtt UpdateTenantStackMapTableFunction.Arn
-  

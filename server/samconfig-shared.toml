@@ -3,7 +3,7 @@ version = 0.1
 [default.deploy]
 [default.deploy.parameters]
 stack_name = "mlaas"
-s3_bucket = "sam-bootstrap-bucket-6bb48584-2e9e-4630-a620-ff639d2dbe9e"
+s3_bucket = "sam-bootstrap-bucket-657dc6ae-0db2-45da-a51b-ce16782bdcc5"
 s3_prefix = "mlaas-bootstrap"
 region = "us-east-1"
 confirm_changeset = false

@@ -92,9 +92,9 @@ def handler(event, context):
     print('## Stack')
     print(stack)
     outputs = stack['Stacks'][0]['Outputs'] 
-    sm_projectname = next(output['OutputValue'] for output in outputs
-        if output['OutputKey'] == 'MlaasPoolSagemakerProjectName')
-    print("##MlaasPoolSagemakerProjectName:", sm_projectname)
+    # sm_projectname = next(output['OutputValue'] for output in outputs
+    #     if output['OutputKey'] == 'MlaasPoolSagemakerProjectName')
+    # print("##MlaasPoolSagemakerProjectName:", sm_projectname)
     
     if object_key.endswith('.csv'):
         assumed_session = create_temp_tenant_session(s3_access_role_arn,"assumed_session", 900, tenant_id, tenant_type)
@@ -132,7 +132,13 @@ def handler(event, context):
     #    ProjectName=sm_projectname
     # )
     # pipeline_name = proj_desc['ProjectName'] + "-" + proj_desc['ProjectId']
-    pipeline_name = "HousingPipeline"
+    
+    post_process_object_key = "model_artifacts_mme"
+    if tenant_tier.upper() == 'PREMIUM':
+        post_process_object_key = f"{tenant_id}/model_artifacts"
+        
+
+    pipeline_name = "CustomerChurnPipeline"
     print("## pipeline_name: " + pipeline_name)
 
     response = sm.start_pipeline_execution(
@@ -163,11 +169,11 @@ def handler(event, context):
             'Value': tenant_id
         },
         {
-            'Name': 'TenantTier',
-            'Value': tenant_tier
+            'Name': 'ObjectKey',
+            'Value': post_process_object_key
         },
         {
-            'Name': 'BucektName',
+            'Name': 'BucketName',
             'Value': sm_bucket_name
         },
         {

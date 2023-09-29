@@ -29,7 +29,7 @@ def lambda_handler(event, context):
     secret_key = event['requestContext']['authorizer']['aws_secret_access_key']
     session_token = event['requestContext']['authorizer']['aws_session_token']
 
-    s3_prefix = f'{tenant_id}/{filename}'
+    s3_prefix = f'{tenant_id}/input/{filename}'
     s3_client = boto3.resource('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key, aws_session_token=session_token)
   
     try:

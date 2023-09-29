@@ -53,7 +53,7 @@ def lambda_handler(event, context):
     appclient_id = tenant_details['Item']['appClientId']
     # apigateway_url = tenant_details['Item']['apiGatewayUrl']
     tenant_tier = tenant_details['Item']['tenantTier']
-    bucket = tenant_details['Item']['s3Bucket']
+    bucket = tenant_details['Item']['sagemakerS3Bucket']
 
     if (tenant_tier.upper() == utils.TenantTier.BASIC.value.upper()):
         logger.error("Error Basic tier tenant admins not allowed to fine tune the model")

@@ -19,7 +19,13 @@ INITIAL_INSTANCE_COUNT = 1
 INITIAL_INSTANCE_WEIGHT = 1.0
 INSTANCE_TYPE = "ml.t2.medium"
 
-class PooledSageMakerEndpoint(NestedStack):
+class PooledSageMakerEndpoint(Construct):
+
+
+    @property
+    def model_endpoint_name(self) -> str:
+        return self._model_endpoint_name
+
     def __init__(self, scope: Construct, id_: str, **kwargs) -> None:
         super().__init__(scope, id_, **kwargs)
 
@@ -80,7 +86,7 @@ class PooledSageMakerEndpoint(NestedStack):
         )        
         model_endpoint.node.add_dependency(model_endpoint_config) 
         
-        NestedStack.of(self).model_endpoint_name = model_endpoint.endpoint_name
+        self._model_endpoint_name = model_endpoint.endpoint_name
         
 
     def attach_sagemaker_bucket_policy(

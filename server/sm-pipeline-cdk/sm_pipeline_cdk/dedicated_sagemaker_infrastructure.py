@@ -23,12 +23,13 @@ from aws_cdk import (
     Duration,
     aws_sqs as sqs,
     aws_iam as iam,
-    aws_s3 as s3
+    aws_s3 as s3,
+    aws_s3_notifications as s3n
 )
 
 from aws_cdk.aws_apigateway import RestApi
 
-class DedicatedSageMakerInfrastructure(NestedStack):
+class DedicatedSageMakerInfrastructure(Construct):
 
     def __init__(self, scope: Construct, id_: str, endpoint_name: str, tenant_id: str, sagemaker_model_bucket_name: str,  api_gateway_id: str, api_gateway_root_resource_id: str, **kwargs) -> None:
         super().__init__(scope, id_, **kwargs)
@@ -123,11 +124,18 @@ class DedicatedSageMakerInfrastructure(NestedStack):
             "rule", 
             rule_name=f's3rule-endpoint-deployer-{tenant_id}-{Aws.REGION}',
             event_pattern=events.EventPattern(
-            source=["aws.s3"],
-            detail_type=["Object Created"],
-                    detail={
-                        "bucket": { "name": [sagemaker_model_bucket_name] }
-                        }
+                source=["aws.s3"],
+                detail_type=["Object Created"],
+                detail={
+                    "bucket": { 
+                        "name": [sagemaker_model_bucket_name] 
+                    },
+                    "object": {
+                        "key": [{
+                            "prefix":f"{tenant_id}/model_artifacts/"
+                        }]
+                    }
+                }
             )
         ) 
         
@@ -172,11 +180,18 @@ class DedicatedSageMakerInfrastructure(NestedStack):
             "ROLE_ARN", sagemaker_model_deployer_lambda_role.role_arn
         )         
         
-        queue = sqs.Queue(self, "Queue")
+        # queue = sqs.Queue(self, "Queue")
         
         sagemaker_bucket_update_event.add_target(targets.LambdaFunction(sagemaker_model_deployer_lambda,
-                                        dead_letter_queue=queue,
+                                        # dead_letter_queue=queue,
                                         max_event_age=cdk.Duration.hours(2),
                                         retry_attempts=2
                                     )
-        )   
+        )
+        
+        # sagemaker_model_bucket_name.add_event_notification(
+        #     s3.EventType.OBJECT_CREATED,
+        #     s3n.LambdaDestination(sagemaker_model_deployer_lambda),
+        #     prefix="model_artifacts/",
+        #     suffix=".tar.gz"
+        # )

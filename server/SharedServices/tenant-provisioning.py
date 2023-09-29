@@ -20,6 +20,7 @@ region = os.environ['AWS_REGION']
 dynamodb = boto3.resource('dynamodb')
 codepipeline = boto3.client('codepipeline')
 cloudformation = boto3.client('cloudformation')
+eventbridge = boto3.client('events')
 s3 = boto3.client('s3')
 iam = boto3.client('iam')
 table_tenant_stack_mapping = dynamodb.Table(tenant_stack_mapping_table_name)
@@ -35,34 +36,99 @@ def provision_tenant(event, context):
 
     try:
         # TODO: Lab3 - uncomment below Premium tier code
-        # if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
-        #     response_ddb = table_tenant_stack_mapping.put_item(
+        if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
+            response_ddb = table_tenant_stack_mapping.put_item(
                 
-        #         Item={
-        #             'tenantId': tenant_id,
-        #             'stackName': stack_name.format(tenant_id),
-        #             'applyLatestRelease': True,
-        #             'codeCommitId': ''
-        #         }
-        #     )    
+                Item={
+                    'tenantId': tenant_id,
+                    'stackName': stack_name.format(tenant_id),
+                    'applyLatestRelease': True,
+                    'codeCommitId': ''
+                }
+            )    
         
-        #     logger.info(response_ddb)
-        #     # Invoke CI/CD pipeline
-        #     response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
+            logger.info(response_ddb)
+            # Invoke CI/CD pipeline
+            response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
 
-        # else:
+        else:
               # TODO: Lab2 - uncomment below Advanced tier code
-        #     if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
-        #         # Create tenantId prefix in S3 buckets
-        #         s3bucket_pooled = __get_setting_value('s3bucket-pooled')
-        #         s3.put_object(Bucket=s3bucket_pooled, Key=''.join([tenant_id, '/']))
+            if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
+                # Create tenantId prefix in S3 buckets
+                prefix = ''.join([tenant_id, '/','input','/'])
+                sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
+                s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=prefix)
 
-        #         sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
-        #         s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=''.join([tenant_id, '/']))
+                # Create notification for tenantId/output prefix 
+                # to invoke Sagemaker pipeline execution lamdba function.
+                sagemaker_pipeline_exec_lambda_arn = __get_setting_value('sagemaker-pipeline-exec-fn-arn-pooled')
+
+                rule_name = f's3rule-{tenant_id}-{region}'
+                event_pattern = {
+                    "detail": {
+                        "bucket": {
+                            "name": [sagemaker_s3bucket_pooled]
+                        },
+                        "object": {
+                            "key": [{
+                                "prefix": prefix
+                            }]
+                        }
+                    },
+                    "detail-type": ["Object Created"],
+                    "source": ["aws.s3"]
+                }
+
+                eventbridge.put_rule(
+                    Name=rule_name,
+                    EventPattern=json.dumps(event_pattern),
+                    State='ENABLED'
+                )
+
+                eventbridge.put_targets(
+                    Rule=rule_name,
+                    Targets=[
+                        {
+                            'Id': tenant_id,
+                            'Arn': sagemaker_pipeline_exec_lambda_arn,
+                            'RetryPolicy': {
+                                'MaximumRetryAttempts': 2,
+                                'MaximumEventAgeInSeconds': 3600
+                            }
+                        }
+                    ])
+
+
+                # notification_configuration = {
+                #     'LambdaFunctionConfigurations': [
+                #         {
+                #             'LambdaFunctionArn': sagemaker_pipeline_exec_lambda_arn,
+                #             'Events': ['s3:ObjectCreated:*'],
+                #             'Filter': {
+                #                 'Key': {
+                #                     'FilterRules': [
+                #                         {
+                #                             'Name': 'prefix',
+                #                             'Value': prefix,
+                #                         },
+                #                     ],
+                #                 },
+                #             },
+                #         },
+                #     ],
+                # }
+
+                # s3.put_bucket_notification_configuration(
+                #     Bucket=sagemaker_s3bucket_pooled,
+                #     NotificationConfiguration=notification_configuration
+                # )
+
+                # sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
+                # s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=''.join([tenant_id, '/']))
             
-        #         __update_tenant_details(tenant_id, s3bucket_pooled,
-        #                                 sagemaker_s3bucket_pooled)
-        #     else:
+                __update_tenant_details(tenant_id,
+                                        sagemaker_s3bucket_pooled)
+            else:
                 # For basic tier tenant just update the tenant details table with api gateway url
                 __update_tenant_details(tenant_id) 
 
@@ -73,9 +139,9 @@ def provision_tenant(event, context):
         return utils.create_success_response("Tenant Provisioning Started")
 
 
-def __update_tenant_details(tenant_id, s3bucket_name="", sagemaker_s3bucket_name=""):
+def __update_tenant_details(tenant_id, sagemaker_s3bucket_name=""):
     try:
-        if not s3bucket_name:
+        if not sagemaker_s3bucket_name:
             apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
             response = table_tenant_details.update_item(
                 Key={'tenantId':tenant_id},
@@ -91,9 +157,8 @@ def __update_tenant_details(tenant_id, s3bucket_name="", sagemaker_s3bucket_name
 
             response = table_tenant_details.update_item(
                 Key={'tenantId':tenant_id},
-                UpdateExpression="set s3Bucket=:s3Bucket, apiGatewayUrl=:apiGatewayUrl, s3BucketTenantRole=:s3BucketTenantRole, sagemakerS3Bucket=:sagemakerS3Bucket",
+                UpdateExpression="set apiGatewayUrl=:apiGatewayUrl, s3BucketTenantRole=:s3BucketTenantRole, sagemakerS3Bucket=:sagemakerS3Bucket",
                 ExpressionAttributeValues={
-                    ':s3Bucket':s3bucket_name,
                     ':apiGatewayUrl':apigatewayurl_pooled,
                     ':s3BucketTenantRole': s3_bucket_tenant_role_pooled,
                     ':sagemakerS3Bucket': sagemaker_s3bucket_name
