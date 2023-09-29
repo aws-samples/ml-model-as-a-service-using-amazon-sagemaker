@@ -1,13 +1,3 @@
-"""Example workflow pipeline script for abalone pipeline.
-
-                                               . -ModelStep
-                                              .
-    Process-> Train -> Evaluate -> Condition .
-                                              .
-                                               . -(stop)
-
-Implements a get_pipeline(**kwargs) method.
-"""
 import os
 
 import boto3
@@ -56,12 +46,6 @@ from botocore.exceptions import ClientError
 
 from sagemaker.workflow.step_collections import RegisterModel
 
-
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-
-logger = logging.getLogger(__name__)
-
-
 def get_session(region, default_bucket):
     """Gets the sagemaker session based on the region.
 
@@ -104,6 +88,72 @@ def get_pipeline_session(region, default_bucket):
         default_bucket=default_bucket,
     )
 
+def resolve_ecr_uri_from_image_versions(sagemaker_session, image_versions, image_name):
+    """ Gets ECR URI from image versions
+    Args:
+        sagemaker_session: boto3 session for sagemaker client
+        image_versions: list of the image versions
+        image_name: Name of the image
+
+    Returns:
+        ECR URI of the image version
+    """
+
+    #Fetch image details to get the Base Image URI
+    for image_version in image_versions:
+        if image_version['ImageVersionStatus'] == 'CREATED':
+            image_arn = image_version["ImageVersionArn"]
+            version = image_version["Version"]
+            logger.info(f"Identified the latest image version: {image_arn}")
+            response = sagemaker_session.sagemaker_client.describe_image_version(
+                ImageName=image_name,
+                Version=version
+            )
+            return response['ContainerImage']
+    return None
+
+def resolve_ecr_uri(sagemaker_session, image_arn):
+    """Gets the ECR URI from the image name
+
+    Args:
+        sagemaker_session: boto3 session for sagemaker client
+        image_name: name of the image
+
+    Returns:
+        ECR URI of the latest image version
+    """
+    image_name = image_arn.partition("image/")[2]
+    try:
+        # Fetch the image versions
+        next_token=''
+        while True:
+            response = sagemaker_session.sagemaker_client.list_image_versions(
+                ImageName=image_name,
+                MaxResults=100,
+                SortBy='VERSION',
+                SortOrder='DESCENDING',
+                NextToken=next_token
+            )
+            ecr_uri = resolve_ecr_uri_from_image_versions(sagemaker_session, response['ImageVersions'], image_name)
+            if "NextToken" in response:
+                next_token = response["NextToken"]
+
+            if ecr_uri is not None:
+                return ecr_uri
+
+        # Return error if no versions of the image found
+        error_message = (
+            f"No image version found for image name: {image_name}"
+            )
+        logger.error(error_message)
+        raise Exception(error_message)
+
+    except (ClientError, sagemaker_session.sagemaker_client.exceptions.ResourceNotFound) as e:
+        error_message = e.response["Error"]["Message"]
+        logger.error(error_message)
+        raise Exception(error_message)
+        
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))        
 
 def get_pipeline(
     region,
@@ -128,16 +178,12 @@ def get_pipeline(
         an instance of a pipeline
     """
     sagemaker_session = get_session(region, default_bucket)
-    account_number = boto3.client('sts').get_caller_identity().get('Account')
 
     if role is None:
         role = sagemaker.session.get_execution_role(sagemaker_session)
 
     pipeline_session = get_pipeline_session(region, default_bucket)
-    
-    sample_data_bucket_name = f"sagemaker-mlaas-pooled-{region}-{account_number}"
-    print(sample_data_bucket_name)
-    
+        
     # parameters for pipeline execution
     processing_instance_type = ParameterString(
         name="ProcessingInstanceType", default_value=""
@@ -163,18 +209,15 @@ def get_pipeline(
     model_version = ParameterString(
         name="ModelVersion", default_value="0",
     )
-    
-    """ Lab 2 """
     tenant_id = ParameterString(
         name="TenantID", default_value="sample-data",
     )
-    tenant_tier = ParameterString(
-        name="TenantTier", default_value="Bronze",
+    bucket_name = ParameterString(
+        name="BucketName", default_value="",
     )
-    mme_bucket_name = ParameterString(
-        name="BucektName", default_value=f"{sample_data_bucket_name}",
+    object_key = ParameterString(
+        name="ObjectKey", default_value="",
     )
-
     
     # training step for generating model artifacts 
     image_uri = sagemaker.image_uris.retrieve(
@@ -228,17 +271,20 @@ def get_pipeline(
         inference_instances=["ml.t2.medium", "ml.m5.large"],
         transform_instances=["ml.m5.large"],
         model_package_group_name=model_package_group_name,
-        approval_status="Approved",
-        model_metrics=model_metrics,
+        approval_status="Approved"
     )
-    
-    
-    """ Lab 2 """
-    
-    # condition step for an extra model artifacts copy to MME folder for Advanced Tier
-
-    step_args = sklearn_processor.run(
         
+    sklearn_processor = SKLearnProcessor(
+        framework_version="0.20.0", 
+        role=role, 
+        instance_type=processing_instance_type,
+        instance_count=1,
+        sagemaker_session=pipeline_session,
+        command=["python3"],
+        base_job_name=f"{base_job_prefix}/copy_model_postprocess",
+    )    
+        
+    step_args = sklearn_processor.run(        
         code=os.path.join(BASE_DIR, "postprocess.py"),
         inputs=[
             ProcessingInput(
@@ -246,24 +292,16 @@ def get_pipeline(
                 destination="/opt/ml/processing/model",
             )
         ],
-        arguments=["--sm-bucket-name", sm_bucket_name, "--tenant-id",tenant_id],
+        arguments=["--bucket-name", bucket_name, "--tenant-id", tenant_id, "--object-key", object_key, "--model-version", model_version, "--region", region],
     )    
     
-    step_post_process_advanced = ProcessingStep(
-        name="Copy_Model_Artifacts_To_S3_Folder_For_MME",
+    step_post_process = ProcessingStep(
+        name="Copy_Model_Artifacts_To_S3_Folder",
         step_args=step_args,
     )
-   
     
-    step_cond_copy_model_for_advanced = ConditionStep(
-        name="Check_Tenant_Tier_Is_Advanced",
-        conditions=[cond_advanced_tier],
-        if_steps=[step_post_process_advanced],
-        else_steps=[],
-    )
-    
-    
-    
+    step_post_process.add_depends_on([step_register])
+                   
     # pipeline instance
     pipeline = Pipeline(
         name=pipeline_name,
@@ -277,18 +315,11 @@ def get_pipeline(
             model_path,
             model_package_group_name,
             model_version,
-             
-            # Lab 2 -> Uncomment the following lines
             tenant_id,
-            tenant_tier,
-            mme_bucket_name
-            
+            bucket_name,
+            object_key,
         ],
-        
-        # steps=[step_train, step_register],
-        
-        # Lab 2 -> Comment out the above line and uncomment the following line
-        steps=[step_train, step_register,step_cond_copy_model_for_advanced ],
+        steps=[step_train, step_register, step_post_process],
         sagemaker_session=pipeline_session,
     )
     return pipeline
