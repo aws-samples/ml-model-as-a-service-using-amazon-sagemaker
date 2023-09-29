@@ -196,7 +196,7 @@ class MlaasApiGateway(Construct):
         lambda_basic_tier_inference_request_processor = lambda_.Function(
             self,
             f"BasicTierRequestProcessorLambdaFn",
-            function_name=f"mlaas-basic-tier-request-processor-{tenant_id}-{Aws.REGION}",
+            function_name=f"mlaas-basic-tier-req-pro-{tenant_id}-{Aws.REGION}",
             runtime=lambda_.Runtime.PYTHON_3_9,
             handler="basic_advanced_tier_request_processor.lambda_handler",
             timeout = Duration.minutes(2),
@@ -214,17 +214,18 @@ class MlaasApiGateway(Construct):
             runtime=lambda_.Runtime.PYTHON_3_9,
             index="basic_advanced_tier_tenant_authorizer.py",
             handler="lambda_handler",
-            function_name=f"mlaas-basic-tier-api-authorizer-{tenant_id}-{Aws.REGION}-sagemaker",
+            function_name=f"mlaas-basic-tier-authorizer-{tenant_id}-{Aws.REGION}",
             role=auth_lambda_role,
             layers=[layer]
         )
+        
 
         # ------------- Advanced Tier Tenant Infrastructure --------------------------
 
         lambda_advanced_tier_inference_request_processor = lambda_.Function(
             self,
             f"AdvTierRequestProcessorLambdaFn",
-            function_name=f"mlaas-adv-tier-request-processor-{tenant_id}-{Aws.REGION}",
+            function_name=f"mlaas-adv-tier-req-pro-{tenant_id}-{Aws.REGION}",
             runtime=lambda_.Runtime.PYTHON_3_9,
             handler="basci_advanced_tier_request_processor.lambda_handler",
             timeout = Duration.minutes(2),
@@ -242,7 +243,7 @@ class MlaasApiGateway(Construct):
             runtime=lambda_.Runtime.PYTHON_3_9,
             index="basic_advanced_tier_tenant_authorizer.py",
             handler="lambda_handler",
-            function_name=f"mlaas-adv-tier-api-authorizer-{tenant_id}-{Aws.REGION}-sagemaker",
+            function_name=f"mlaas-adv-tier-authorizer-{tenant_id}-{Aws.REGION}",
             role=auth_lambda_role,
             layers=[layer]
         )

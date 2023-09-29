@@ -51,25 +51,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--tenant-id", type=str, required=True)
     parser.add_argument("--bucket-name", type=str, required=True)
-    parser.add_argument("--tenant-tier", type=str, required=True)
+    parser.add_argument("--object-key", type=str, required=True)
     parser.add_argument("--model-version", type=str, required=True)
     parser.add_argument("--region", type=str, required=True)
 
     args = parser.parse_args()
+    
     local_file = "/opt/ml/processing/model/model.tar.gz"
+    
     s3 = boto3.resource("s3")
+    
     file_name = f"{args.tenant_id}.model.{args.model_version}.tar.gz"
-
-    if args.tenant_tier == "Bronze":
-        logger.info("Starting copying model artifacts from the local file to the shared s3 prefix (model_artifacts_mme).")
-        logger.info("SageMaker Multi-model endpoint will use this bucket to load and unload its models")
-        object_key = f"model_artifacts_mme/{file_name}"
-    elif args.tenant_tier == "Gold":
-        logger.info("Starting copying model artifacts from the local file to a dedicated s3 prefix")
-        object_key = f"{args.tenant_id}/model_artifacts/{file_name}"
-    else:
-        raise ValueError("Invalid tenant tier. The tenant tier must be either 'Bronze' or 'Gold'.")
-
+    
+    object_key = f"{args.object_key}/{file_name}"
+    
     s3.Bucket(args.bucket_name).upload_file(local_file, object_key)
     logger.info("Copying model artifacts ended")
 

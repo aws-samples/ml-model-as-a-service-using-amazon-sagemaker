@@ -14,10 +14,10 @@ from aws_cdk import (
     aws_lambda_python_alpha as python_lambda,
     aws_lambda as lambda_,
     custom_resources as cr,
-    CustomResource
+    CustomResource,
+    aws_s3_deployment as s3_deployment
 )
 from constructs import Construct
-
 import aws_cdk as cdk
 
 INITIAL_INSTANCE_COUNT = 1
@@ -45,45 +45,13 @@ class DedicatedSageMakerEndpoint(Construct):
  
             }
         )  
-        
-        # mlaas_application_bucket = s3.Bucket.from_bucket_attributes(self, 
-        #     "ImportedBucket",
-        #     bucket_arn=f'arn:aws:s3:::sagemaker-mlaas-pooled-{Aws.REGION}-{Aws.ACCOUNT_ID}'
-        # )
 
-        upload_sample_model_execution_role = iam.Role(self, "UploadSampleModelExecutionRole",
-                                                        assumed_by=iam.ServicePrincipal(
-                                                            "lambda.amazonaws.com"),
-                                                        managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="CloudWatchLambdaInsightsExecutionRolePolicy",
-                                                                                                                    managed_policy_arn="arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"),
-                                                                          iam.ManagedPolicy.from_managed_policy_arn(self, id="AWSLambdaBasicExecutionRole",
-                                                                                                                    managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")]
-                                                        )
+        model_deployment = s3_deployment.BucketDeployment(self, "DeployModel",
+            sources=[s3_deployment.Source.asset("../../setup/model_artifacts.zip")],
+            destination_bucket=bucket
+        )                                        
 
-        upload_sample_model_execution_role.add_to_policy(iam.PolicyStatement(
-                actions=["s3:PutObject"],
-                resources=[f"arn:aws:s3:::{bucket.bucket_name}",
-                       f"arn:aws:s3:::{bucket.bucket_name}/*"
-                ]
-            )
-            )
 
-        upload_sample_model_function = python_lambda.PythonFunction(self, "update_tenant_details",
-                                                                      entry="../custom_resources",
-                                                                      runtime=lambda_.Runtime.PYTHON_3_9,
-                                                                      index="update_sample_model.py",
-                                                                      handler="handler",
-                                                                      role=upload_sample_model_execution_role)
-
-        upload_sample_model_provider = cr.Provider(self, "UploadSampleModelProvider",
-                                                     on_event_handler=upload_sample_model_function
-                                                     )
-
-        upload_sample_model_custom_resource = CustomResource(self, "UploadSampleModelCustomResource", 
-                                                service_token=upload_sample_model_provider.service_token,
-                                                properties={
-                                                    "S3Bucket": bucket.bucket_name
-                                                })
 
         tenant_model_container = self.generate_container_definition_property(bucket, 
             xgboost_container_mapping.find_in_map(Aws.REGION,"containerImageUri"))
@@ -96,7 +64,7 @@ class DedicatedSageMakerEndpoint(Construct):
             primary_container=tenant_model_container,
         )
 
-        tenant_model.node.add_dependency(upload_sample_model_custom_resource)
+        tenant_model.node.add_dependency(model_deployment)
 
         model_endpoint_config = sagemaker.CfnEndpointConfig(
             self,
@@ -113,7 +81,7 @@ class DedicatedSageMakerEndpoint(Construct):
             ],
         )
         model_endpoint_config.node.add_dependency(tenant_model)
-
+        
         model_endpoint = sagemaker.CfnEndpoint(
             self,
             f"SageMaker-Endpoint",
@@ -121,10 +89,9 @@ class DedicatedSageMakerEndpoint(Construct):
             endpoint_name=f'{tenant_id}-SageMaker-Endpoint',
         )        
         model_endpoint.node.add_dependency(model_endpoint_config)
-
+        
         self._model_endpoint_name = model_endpoint.endpoint_name
-
-
+        
         
     def generate_container_definition_property(self, models_bucket: s3.Bucket, container_image_uri: str) -> sagemaker.CfnModel.ContainerDefinitionProperty:
             """

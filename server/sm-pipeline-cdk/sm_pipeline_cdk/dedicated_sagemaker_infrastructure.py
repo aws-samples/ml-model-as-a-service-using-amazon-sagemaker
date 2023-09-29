@@ -35,7 +35,7 @@ class DedicatedSageMakerInfrastructure(Construct):
         super().__init__(scope, id_, **kwargs)
         
         inference_request_processor_lambda_role = iam.Role(self, "InferenceRequestProcessorRole",
-            role_name=f'mlaas-infer-req-pro-role-{tenant_id}-{Aws.REGION}',
+            role_name=f'mlaas-dedicated-infer-role-{tenant_id}-{Aws.REGION}',
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
             managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorCloudWatchLambdaInsightsExecutionRolePolicy",
                                                                             managed_policy_arn="arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"),
