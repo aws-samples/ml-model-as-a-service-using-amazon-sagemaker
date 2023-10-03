@@ -186,7 +186,7 @@ def get_pipeline(
         
     # parameters for pipeline execution
     processing_instance_type = ParameterString(
-        name="ProcessingInstanceType", default_value=""
+        name="ProcessingInstanceType", default_value="ml.t3.large"
     )
     processing_instance_count = ParameterInteger(
         name="ProcessingInstanceCount", default_value=1
