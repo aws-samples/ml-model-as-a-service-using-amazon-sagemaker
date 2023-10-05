@@ -86,7 +86,7 @@ def lambda_handler(event, context):
     authorization_success_policy=""
 
     try:
-        if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper()):
+        if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
             session_parameters = assume_role(
                 access_role_arn=role_to_assume_arn, tenant_id=tenant_id
             )

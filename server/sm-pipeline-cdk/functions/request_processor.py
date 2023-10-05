@@ -124,8 +124,7 @@ def create_boto3_client(
     """
     Creates a boto3 client. 
     """
-    if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper() and 
-        tenant_tier.upper() != utils.TenantTier.BASIC.value.upper() ):
+    if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
 
         session = boto3.Session(
             aws_access_key_id=aws_access_key_id,
