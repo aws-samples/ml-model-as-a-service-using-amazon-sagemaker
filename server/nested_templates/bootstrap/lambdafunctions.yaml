@@ -336,7 +336,7 @@ Resources:
                   - events:PutRule
                   - events:PutTargets
                 Resource:
-                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/*
               - Effect: Allow
                 Action:
                   - iam:CreateRole

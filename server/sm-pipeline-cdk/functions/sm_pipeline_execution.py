@@ -51,7 +51,7 @@ def create_boto3_client(
     """
     Creates a boto3 client. 
     """
-    if (tenant_tier.upper() != utils.TenantTier.ADVANCED.value.upper()):
+    if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
         s3_access_role_arn= os.environ['S3_ACCESS_ROLE_ARN']
         assumed_session = create_temp_tenant_session(s3_access_role_arn, session_name, 900, tenant_id)
         s3_client = assumed_session.resource('s3')

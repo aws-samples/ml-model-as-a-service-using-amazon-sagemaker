@@ -46,7 +46,7 @@ class PooledInfrastructure(Construct):
         )
         )
 
-            
+        services.inference_processor_lambda.add_environment("ENDPOINT_NAME", pooled_sagemaker_endpoint_stack.model_endpoint_name) 
         services.authorizer_lambda.add_environment("ROLE_TO_ASSUME_ARN", abac_tenant_iam_role.role_arn) 
         services.sm_pipeline_execution_lambda.add_environment("S3_ACCESS_ROLE_ARN", abac_tenant_iam_role.role_arn)
 

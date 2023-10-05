@@ -153,14 +153,12 @@ def __update_tenant_details(tenant_id, sagemaker_s3bucket_name=""):
             )
         else:
             apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
-            s3_bucket_tenant_role_pooled = __get_setting_value('s3bucket-tenant-role-pooled') 
-
+            
             response = table_tenant_details.update_item(
                 Key={'tenantId':tenant_id},
-                UpdateExpression="set apiGatewayUrl=:apiGatewayUrl, s3BucketTenantRole=:s3BucketTenantRole, sagemakerS3Bucket=:sagemakerS3Bucket",
+                UpdateExpression="set apiGatewayUrl=:apiGatewayUrl, sagemakerS3Bucket=:sagemakerS3Bucket",
                 ExpressionAttributeValues={
                     ':apiGatewayUrl':apigatewayurl_pooled,
-                    ':s3BucketTenantRole': s3_bucket_tenant_role_pooled,
                     ':sagemakerS3Bucket': sagemaker_s3bucket_name
                 },
                 ReturnValues="UPDATED_NEW"

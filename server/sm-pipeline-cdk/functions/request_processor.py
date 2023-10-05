@@ -12,7 +12,7 @@ HTTP_BAD_REQUEST = 400
 HTTP_INTERNAL_ERROR = 500
 HTTP_OK = 200
 
-pooled_endpoint_name = os.getenv("POOLED_ENDPOINT_NAME")
+endpoint_name = os.getenv("ENDPOINT_NAME")
 
 root = logging.getLogger()
 root.setLevel("INFO")
@@ -27,7 +27,6 @@ def lambda_handler(event, context):
 
     # Get all the necessary parameters from the request context
     tenant_id = event["requestContext"]["authorizer"]["principalId"]
-    endpoint_name = pooled_endpoint_name
     aws_access_key_id = event["requestContext"]["authorizer"]["aws_access_key_id"]
     aws_secret_access_key = event["requestContext"]["authorizer"]["aws_secret_access_key"]
     aws_session_token = event["requestContext"]["authorizer"]["aws_session_token"]

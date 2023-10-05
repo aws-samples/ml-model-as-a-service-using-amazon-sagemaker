@@ -83,6 +83,7 @@ def lambda_handler(event, context):
         user_role = response["custom:userRole"]
 
     logger.info(tenant_id)
+    authorization_success_policy=""
 
     try:
         if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper()):
@@ -98,12 +99,7 @@ def lambda_handler(event, context):
                 methodArn, tenant_id, session_parameters
             )
 
-            authorization_success_policy['context']['bucket'] = bucket
-            authorization_success_policy['context']['tier'] = tenant_tier
-            authorization_success_policy['context']['modelVersion'] = model_version
-
-            logger.info("Authorization succeeded")
-            return authorization_success_policy
+            
         else:
             session_parameters = SessionParameters(
                 aws_access_key_id="",
@@ -116,8 +112,12 @@ def lambda_handler(event, context):
                 methodArn, tenant_id, session_parameters
             )
 
-            logger.info("Authorization succeeded")
-            return authorization_success_policy
+        authorization_success_policy['context']['bucket'] = bucket
+        authorization_success_policy['context']['tier'] = tenant_tier
+        authorization_success_policy['context']['modelVersion'] = model_version
+
+        logger.info("Authorization succeeded")
+        return authorization_success_policy
 
         
     except Exception as e:

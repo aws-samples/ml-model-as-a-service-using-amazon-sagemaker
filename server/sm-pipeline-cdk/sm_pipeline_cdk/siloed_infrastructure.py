@@ -49,6 +49,8 @@ class SiloedInfrastructure(Construct):
                     ]
         )
         )
+
+        services.inference_processor_lambda.add_environment("ENDPOINT_NAME", dedicated_sagemaker_endpoint_stack.model_endpoint_name)
         
         # Note: For silo tenants, prefix tenant_id/input/ 
         # and its notification are be added 

@@ -8,8 +8,7 @@ from aws_cdk import (
     aws_lambda as lambda_,
     Duration,
     aws_lambda_python_alpha as lambda_python,
-    aws_iam as iam,
-    Duration
+    aws_iam as iam
 )
 
 class Services(Construct):
@@ -89,6 +88,7 @@ class Services(Construct):
                                                           runtime=lambda_.Runtime.PYTHON_3_9,
                                                           index="s3_uploader.py",
                                                           handler="lambda_handler",
+                                                          timeout = Duration.minutes(1),
                                                           function_name=f"mlaas-s3-uploader-{tenant_id}-{Aws.REGION}",
                                                           role=s3_uploader_lambda_role,
                                                           layers=[layer]
@@ -199,7 +199,7 @@ class Services(Construct):
                                                                             managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")])
             basic_tier_inference_processor_lambda_role.add_to_policy(iam.PolicyStatement(
             actions=["sagemaker:InvokeEndpoint"],
-            resources=[f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:endpoint/basic-tier-sagemaker-endpoint"]
+            resources=[f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:endpoint/Endpoint-GenericModel"]
             )
             )
             # ------------- Basic Tier Tenant Infrastructure --------------------------
@@ -213,7 +213,7 @@ class Services(Construct):
                 code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
                 role=basic_tier_inference_processor_lambda_role,            
                 environment={
-                    "ENDPOINT_NAME": "basic-tier-sagemaker-endpoint"
+                    "ENDPOINT_NAME": "Endpoint-GenericModel"
                 }            
             )
             self._basic_tier_inference_processor_lambda = lambda_basic_tier_inference_request_processor
