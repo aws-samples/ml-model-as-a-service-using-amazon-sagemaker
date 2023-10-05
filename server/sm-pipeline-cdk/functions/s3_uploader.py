@@ -5,6 +5,7 @@ import logging
 import base64
 import boto3
 import os
+import utils
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,7 +31,7 @@ def lambda_handler(event, context):
     session_token = event['requestContext']['authorizer']['aws_session_token']
 
     s3_prefix = f'{tenant_id}/input/{filename}'
-    s3_client = boto3.resource('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key, aws_session_token=session_token)
+    s3_client = create_boto3_client(tenant_tier, access_key, secret_key, session_token)
   
     try:
         object = s3_client.Object(bucket_name, s3_prefix)
@@ -43,3 +44,16 @@ def lambda_handler(event, context):
     except Exception as e:
         logger.info(f"Error uploading {filename}")
         raise IOError(e) 
+
+
+def create_boto3_client(
+    tenant_tier: str, access_key: str, secret_key: str, session_token: str
+) -> boto3.client:
+    """
+    Creates a boto3 client. 
+    """
+    if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
+        s3_client = boto3.resource('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key, aws_session_token=session_token)
+        return s3_client
+    else:
+        return boto3.resource("s3")    

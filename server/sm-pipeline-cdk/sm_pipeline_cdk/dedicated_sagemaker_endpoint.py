@@ -30,7 +30,7 @@ class DedicatedSageMakerEndpoint(Construct):
     def model_endpoint_name(self) -> str:
         return self._model_endpoint_name
 
-    def __init__(self, scope: Construct, construct_id: str, tenant_id: str, bucket: s3.Bucket, tenant_iam_role:iam.Role, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, tenant_id: str, bucket: s3.Bucket, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         
         #SageMaker XGBoost Image Locations
@@ -50,7 +50,21 @@ class DedicatedSageMakerEndpoint(Construct):
             sources=[s3_deployment.Source.asset("../../setup/model_artifacts.zip")],
             destination_bucket=bucket
         )                                        
-
+        
+        tenant_iam_role = iam.Role(self, 'SageMakerTenantIamRole',
+                role_name=f'mlaas-tenant-role-{tenant_id}-{Aws.REGION}',
+                assumed_by=iam.CompositePrincipal(
+                    iam.ServicePrincipal("sagemaker.amazonaws.com")
+                ),
+                managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="AmazonSageMakerFullAccess",managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")]
+                )
+        tenant_iam_role.add_to_policy(iam.PolicyStatement(
+        actions=["s3:PutObject", "s3:GetObject","s3:ListBucket", "s3:DeleteObject"],
+        resources=[f"arn:aws:s3:::{bucket.bucket_name}",
+                    f"arn:aws:s3:::{bucket.bucket_name}/*"
+                    ]
+        )
+        )
 
 
         tenant_model_container = self.generate_container_definition_property(bucket, 

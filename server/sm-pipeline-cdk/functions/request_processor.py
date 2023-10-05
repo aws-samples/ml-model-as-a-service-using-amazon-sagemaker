@@ -4,6 +4,7 @@
 import json
 import logging
 import os
+import utils
 
 import boto3
 
@@ -30,36 +31,30 @@ def lambda_handler(event, context):
     aws_access_key_id = event["requestContext"]["authorizer"]["aws_access_key_id"]
     aws_secret_access_key = event["requestContext"]["authorizer"]["aws_secret_access_key"]
     aws_session_token = event["requestContext"]["authorizer"]["aws_session_token"]
+    tenant_tier = event["requestContext"]["authorizer"]["tier"]
+    model_version = event["requestContext"]["authorizer"]["modelVersion"]
 
     logging.info(f"tenant_id: {tenant_id}")
     logging.info(f"endpoint_name: {endpoint_name}")
+    logging.info(f"tenant_tier: {tenant_tier}")
+    logging.info(f"model_version: {model_version}")
     
-    # get tenant informationto extract the latest model version
-    tenant_details = table_tenant_details.get_item(
-        Key={
-            'tenantId': tenant_id
-        }
-    )    
-    
-    model_version = tenant_details['Item']['modelVersion']
-    logging.info(f"latest model version: {model_version}")
     
     # Generate a python session object from the session parameters created by the authorizer
     try:
-        temp_boto3_session = create_temp_boto3_session(
-            aws_access_key_id, aws_secret_access_key, aws_session_token
+        
+        client = create_boto3_client(
+            tenant_tier, aws_access_key_id, aws_secret_access_key, aws_session_token
         )
     except Exception as e:
         logging.error(e)
         return return_json(HTTP_INTERNAL_ERROR, "[Error] {}", e)    
         
-    # Create a boto3 runtime.sagemaker client using the assumed session object
-    temp_client = temp_boto3_session.client("runtime.sagemaker")
-    
+
     # Invoke the SageMaker endpoint
     try:
         result = invoke_sagemaker_endpoint(
-            request_body_data, tenant_id, endpoint_name, model_version, temp_client
+            request_body_data, tenant_id, tenant_tier, endpoint_name, model_version, client
         )
     except Exception as e:
         logging.error(e)
@@ -73,50 +68,75 @@ def lambda_handler(event, context):
 def invoke_sagemaker_endpoint(
     request_body_data: str,
     tenant_id: str,
+    tenant_tier: str,  
     endpoint_name: str,
     model_version: str,
     temp_client: boto3.client,
 ):
     """
-    Invokes a SageMaker endpoint.
-    If the tenant_tier is TENANT_TIER_POOL_STR then invoke the pool SageMaker Endpoint.
+    Invokes specific SageMaker endpoint based on the tenant tier.
     Returns the results of the InvokeEndpoint call.
     """
-    logging.info("Invoking bronze endpoint")
-    logging.info(
-        f"""temp_client.invoke_endpoint(
-        EndpointName={endpoint_name},
-        ContentType=\"text/csv\",
-        Body={request_body_data},
-        TargetModel={tenant_id}.model.{model_version}.tar.gz,
-    )""")
+    response=""
+    if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper() and 
+        tenant_tier.upper() != utils.TenantTier.BASIC.value.upper() ):
+        logging.info("Invoking pooled endpoint")
+        logging.info(
+            f"""temp_client.invoke_endpoint(
+            EndpointName={endpoint_name},
+            ContentType=\"text/csv\",
+            Body={request_body_data},
+            TargetModel={tenant_id}.model.{model_version}.tar.gz,
+        )""")
+        
+        response = temp_client.invoke_endpoint(
+            EndpointName=endpoint_name,
+            ContentType="text/csv",
+            TargetModel=f"{tenant_id}.model.{model_version}.tar.gz",
+            Body=request_body_data,
+        )
+        
+        logging.info(request_body_data)
     
-    response = temp_client.invoke_endpoint(
-        EndpointName=endpoint_name,
-        ContentType="text/csv",
-        TargetModel=f"{tenant_id}.model.{model_version}.tar.gz",
-        Body=request_body_data,
-    )
+    else:
+        logging.info("Invoking dedicated  endpoint")
+        logging.info(
+            f"""client.invoke_endpoint(
+            EndpointName={endpoint_name},
+            ContentType=\"text/csv\",
+            Body={request_body_data},
+        )""")
     
-    logging.info(request_body_data)
+        response = temp_client.invoke_endpoint(
+            EndpointName=endpoint_name,
+            ContentType="text/csv",
+            Body=request_body_data,
+        )
+        
+        logging.info(request_body_data)
 
-    result = response["Body"].read().decode()
+    result = response["Body"].read().decode()   
     return result
 
 
-def create_temp_boto3_session(
-    aws_access_key_id: str, aws_secret_access_key: str, aws_session_token: str
-) -> boto3.Session:
+def create_boto3_client(
+    tenant_tier: str, aws_access_key_id: str, aws_secret_access_key: str, aws_session_token: str
+) -> boto3.client:
     """
-    Creates a python object representing the temporary session created by the authorizer.
+    Creates a boto3 client. 
     """
-    session = boto3.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        aws_session_token=aws_session_token,
-    )
+    if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper() and 
+        tenant_tier.upper() != utils.TenantTier.BASIC.value.upper() ):
 
-    return session
+        session = boto3.Session(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token,
+        )
+        return session.client("sagemaker-runtime")
+
+    else:
+        return boto3.client("sagemaker-runtime")    
 
 
 def return_json(status_code: int, body: str, *args) -> None:

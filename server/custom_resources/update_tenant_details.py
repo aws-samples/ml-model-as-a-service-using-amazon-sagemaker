@@ -24,8 +24,6 @@ def do_action(event, _):
     settings_table_name = event['ResourceProperties']['SettingsTableName']
     tenant_id = event['ResourceProperties']['TenantId']
     tenant_api_gateway_url = event['ResourceProperties']['TenantApiGatewayUrl']
-    # s3_bucket = event['ResourceProperties']['S3Bucket']
-    tenant_role_arn = event['ResourceProperties']['TenantRoleArn']
     sm_s3_bucket = event['ResourceProperties']['SagemakerS3Bucket']
     sm_pipeline_exec_fn_arn= event['ResourceProperties']['SagemakerPipelineExecFnArn']
     
@@ -34,11 +32,9 @@ def do_action(event, _):
         tenant_details = dynamodb.Table(tenant_details_table_name)
         response = tenant_details.update_item(
             Key={'tenantId': tenant_id},
-            UpdateExpression="set apiGatewayUrl=:apiGatewayUrl, s3BucketTenantRole=:s3BucketTenantRole, sagemakerS3Bucket=:sagemakerS3Bucket",
+            UpdateExpression="set apiGatewayUrl=:apiGatewayUrl, sagemakerS3Bucket=:sagemakerS3Bucket",
             ExpressionAttributeValues={
             ':apiGatewayUrl': tenant_api_gateway_url,
-            # ':s3Bucket': s3_bucket,
-            ':s3BucketTenantRole': tenant_role_arn,
             ':sagemakerS3Bucket': sm_s3_bucket
             },
             ReturnValues="NONE") 
@@ -47,7 +43,6 @@ def do_action(event, _):
         # For pooled tenants tenantId/input prefix will 
         # be added during onboarding in the tenant provisioning service  
         prefix = ''.join([tenant_id, '/','input','/'])
-        # s3.put_object(Bucket=s3_bucket, Key=prefix)
         s3.put_object(Bucket=sm_s3_bucket, Key=prefix)
         
         # Create notification for tenantId/output prefix 
@@ -86,31 +81,6 @@ def do_action(event, _):
                     }
                 }
             ])
-
-
-        # notification_configuration = {
-        #             'LambdaFunctionConfigurations': [
-        #                 {
-        #                     'LambdaFunctionArn': sm_pipeline_exec_fn_arn,
-        #                     'Events': ['s3:ObjectCreated:*'],
-        #                     'Filter': {
-        #                         'Key': {
-        #                             'FilterRules': [
-        #                                 {
-        #                                     'Name': 'prefix',
-        #                                     'Value': prefix,
-        #                                 },
-        #                             ],
-        #                         },
-        #                     },
-        #                 },
-        #             ],
-        #         }
-
-        # s3.put_bucket_notification_configuration(
-        #     Bucket=sm_s3_bucket,
-        #     NotificationConfiguration=notification_configuration
-        # )
         
     else:
         
@@ -122,25 +92,14 @@ def do_action(event, _):
                         'settingValue' : tenant_api_gateway_url
                     }
                 )
-        # response = table_system_settings.put_item(
-        #         Item={
-        #                 'settingName': 's3bucket-pooled',
-        #                 'settingValue' : s3_bucket
-        #             }
-        #         )
+        
         response = table_system_settings.put_item(
                 Item={
                         'settingName': 'sagemaker-s3bucket-pooled',
                         'settingValue' : sm_s3_bucket
                     }
                 )
-        response = table_system_settings.put_item(
-                Item={
-                        'settingName': 's3bucket-tenant-role-pooled',
-                        'settingValue' : tenant_role_arn
-                    }
-                )
-
+        
         response = table_system_settings.put_item(
                 Item={
                         'settingName': 'sagemaker-pipeline-exec-fn-arn-pooled',

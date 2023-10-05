@@ -54,6 +54,7 @@ def lambda_handler(event, context):
     # apigateway_url = tenant_details['Item']['apiGatewayUrl']
     tenant_tier = tenant_details['Item']['tenantTier']
     bucket = tenant_details['Item']['sagemakerS3Bucket']
+    model_version = tenant_details['Item']['modelVersion']
 
     if (tenant_tier.upper() == utils.TenantTier.BASIC.value.upper()):
         logger.error("Error Basic tier tenant admins not allowed to fine tune the model")
@@ -84,24 +85,39 @@ def lambda_handler(event, context):
     logger.info(tenant_id)
 
     try:
-        # TODO Add missing code to create temporary credentials
-        session_parameters = assume_role(
-            access_role_arn=role_to_assume_arn, tenant_id=tenant_id
-        )
+        if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper()):
+            session_parameters = assume_role(
+                access_role_arn=role_to_assume_arn, tenant_id=tenant_id
+            )
 
-        if session_parameters is None:
-            return authorizer_layer.create_auth_denied_policy(methodArn)
+            if session_parameters is None:
+                return authorizer_layer.create_auth_denied_policy(methodArn)
 
-        # After succesfully assuming the role we can return a success policy
-        authorization_success_policy = authorizer_layer.create_auth_success_policy(
-            methodArn, tenant_id, session_parameters
-        )
+            # After succesfully assuming the role we can return a success policy
+            authorization_success_policy = authorizer_layer.create_auth_success_policy(
+                methodArn, tenant_id, session_parameters
+            )
 
-        authorization_success_policy['context']['bucket'] = bucket
-        authorization_success_policy['context']['tier'] = tenant_tier
+            authorization_success_policy['context']['bucket'] = bucket
+            authorization_success_policy['context']['tier'] = tenant_tier
+            authorization_success_policy['context']['modelVersion'] = model_version
 
-        logger.info("Authorization succeeded")
-        return authorization_success_policy
+            logger.info("Authorization succeeded")
+            return authorization_success_policy
+        else:
+            session_parameters = SessionParameters(
+                aws_access_key_id="",
+                aws_secret_access_key="",
+                aws_session_token=""
+            )      
+
+            #Wwe can return a success policy
+            authorization_success_policy = authorizer_layer.create_auth_success_policy(
+                methodArn, tenant_id, session_parameters
+            )
+
+            logger.info("Authorization succeeded")
+            return authorization_success_policy
 
         
     except Exception as e:

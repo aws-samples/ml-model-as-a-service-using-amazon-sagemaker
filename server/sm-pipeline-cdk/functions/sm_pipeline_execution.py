@@ -7,12 +7,13 @@ import boto3
 import pandas as pd
 import numpy as np
 from io import StringIO
+import utils
+
 
 sm = boto3.client('sagemaker')
-cf = boto3.client('cloudformation')
 
 
-def create_temp_tenant_session(access_role_arn, session_name,duration_sec, tenant_id, tenant_type):
+def create_temp_tenant_session(access_role_arn, session_name,duration_sec, tenant_id):
     """
     Create a temporary session
     :param access_role_arn: The ARN of the role that the caller is assuming
@@ -26,26 +27,18 @@ def create_temp_tenant_session(access_role_arn, session_name,duration_sec, tenan
     sts = boto3.client('sts')
     assume_role_response = ""
 
-    if tenant_type == 'pooled':
-        assume_role_response = sts.assume_role(
-            RoleArn=access_role_arn,
-            DurationSeconds=duration_sec,
-            RoleSessionName=session_name,
-            Tags=[
-                {
-                    'Key': 'TenantID',
-                    'Value': tenant_id
-                }
-            ]
-        )
+    assume_role_response = sts.assume_role(
+        RoleArn=access_role_arn,
+        DurationSeconds=duration_sec,
+        RoleSessionName=session_name,
+        Tags=[
+            {
+                'Key': 'TenantID',
+                'Value': tenant_id
+            }
+        ]
+    )
 
-    else:
-
-        assume_role_response = sts.assume_role(
-            RoleArn=access_role_arn,
-            DurationSeconds=duration_sec,
-            RoleSessionName=session_name
-        )
     print(assume_role_response)
     session = boto3.Session(aws_access_key_id=assume_role_response['Credentials']['AccessKeyId'],
                     aws_secret_access_key=assume_role_response['Credentials']['SecretAccessKey'],
@@ -53,6 +46,18 @@ def create_temp_tenant_session(access_role_arn, session_name,duration_sec, tenan
     return session
 
 
+def create_boto3_client(
+    tenant_id, tenant_tier, session_name):
+    """
+    Creates a boto3 client. 
+    """
+    if (tenant_tier.upper() != utils.TenantTier.ADVANCED.value.upper()):
+        s3_access_role_arn= os.environ['S3_ACCESS_ROLE_ARN']
+        assumed_session = create_temp_tenant_session(s3_access_role_arn, session_name, 900, tenant_id)
+        s3_client = assumed_session.resource('s3')
+        return s3_client
+    else:
+        return boto3.resource("s3")
 
 
 def handler(event, context):
@@ -67,9 +72,8 @@ def handler(event, context):
     tenant_id = object_key.split('/')[0]
     print('## Tenant ID:' + tenant_id)
 
-    dynamodb_access_role_arn= os.environ['dynamodb_access_role_arn']
-    tenant_type=os.environ['tenant_type']
-    dynamodb_assumed_session= create_temp_tenant_session(dynamodb_access_role_arn,"dynamodb_assumed_session", 900, tenant_id, tenant_type)
+    dynamodb_access_role_arn= os.environ['DYNAMODB_ACCESS_ROLE_ARN']
+    dynamodb_assumed_session= create_temp_tenant_session(dynamodb_access_role_arn, "dynamodb_assumed_session", 900, tenant_id)
 
     dynamodb = dynamodb_assumed_session.resource('dynamodb')
     table = dynamodb.Table('MLaaS-TenantDetails')
@@ -78,27 +82,24 @@ def handler(event, context):
             'tenantId':  tenant_id
         }
     )
-    s3_access_role_arn = dynamo_item['Item']['s3BucketTenantRole']
+    # s3_access_role_arn = dynamo_item['Item']['s3BucketTenantRole']
     tenant_tier = dynamo_item['Item']['tenantTier']
     sm_bucket_name = dynamo_item['Item']['sagemakerS3Bucket']
     model_version_int = int(dynamo_item['Item']['modelVersion']) + 1
     model_version = str(model_version_int)
     
-    print('## Tenant S3 Access IAM Role:' + s3_access_role_arn)
-
     csv_buffer = StringIO()
     
-    stack = cf.describe_stacks(StackName='mlaas-cdk-shared-template')
-    print('## Stack')
-    print(stack)
-    outputs = stack['Stacks'][0]['Outputs'] 
+    # stack = cf.describe_stacks(StackName='mlaas-cdk-shared-template')
+    # print('## Stack')
+    # print(stack)
+    # outputs = stack['Stacks'][0]['Outputs'] 
     # sm_projectname = next(output['OutputValue'] for output in outputs
     #     if output['OutputKey'] == 'MlaasPoolSagemakerProjectName')
     # print("##MlaasPoolSagemakerProjectName:", sm_projectname)
     
     if object_key.endswith('.csv'):
-        assumed_session = create_temp_tenant_session(s3_access_role_arn,"assumed_session", 900, tenant_id, tenant_type)
-        s3 = assumed_session.resource('s3')
+        s3 = create_boto3_client(tenant_id, tenant_tier,"s3_assumed_session")
         
         try:
             data_obj = s3.Object(bucket_name=bucket_name, key=object_key)
@@ -127,11 +128,6 @@ def handler(event, context):
             raise IOError(e) 
         
 
-    ''' Create a pipeline exeution from the pipeline template '''
-    # proj_desc = sm.describe_project(
-    #    ProjectName=sm_projectname
-    # )
-    # pipeline_name = proj_desc['ProjectName'] + "-" + proj_desc['ProjectId']
     
     post_process_object_key = "model_artifacts_mme"
     if tenant_tier.upper() == 'PREMIUM':
