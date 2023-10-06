@@ -57,8 +57,9 @@ def lambda_handler(event, context):
     model_version = tenant_details['Item']['modelVersion']
 
     if (tenant_tier.upper() == utils.TenantTier.BASIC.value.upper()):
-        logger.error("Error Basic tier tenant admins not allowed to fine tune the model")
-        return authorizer_layer.create_auth_denied_policy(methodArn)
+        if 'basic_inference' not in methodArn:
+            logger.error("Error Basic tier tenant admins not allowed to fine tune the model")
+            return authorizer_layer.create_auth_denied_policy(methodArn)
 
     # get keys for tenant user pool to validate
     keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(

@@ -211,7 +211,8 @@ class Services(Construct):
                 handler="request_processor.lambda_handler",
                 timeout = Duration.minutes(2),
                 code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
-                role=basic_tier_inference_processor_lambda_role,            
+                role=basic_tier_inference_processor_lambda_role,
+                layers=[layer],            
                 environment={
                     "ENDPOINT_NAME": "Endpoint-GenericModel"
                 }            

@@ -77,8 +77,7 @@ def invoke_sagemaker_endpoint(
     Returns the results of the InvokeEndpoint call.
     """
     response=""
-    if (tenant_tier.upper() != utils.TenantTier.PREMIUM.value.upper() and 
-        tenant_tier.upper() != utils.TenantTier.BASIC.value.upper() ):
+    if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
         logging.info("Invoking pooled endpoint")
         logging.info(
             f"""temp_client.invoke_endpoint(
