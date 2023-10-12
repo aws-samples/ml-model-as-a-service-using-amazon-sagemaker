@@ -21,10 +21,10 @@ nvm --version
 #Install python3.8
 sudo yum update -y
 sudo yum install -y amazon-linux-extras
-# sudo amazon-linux-extras enable python3.8
-# sudo yum install -y python3.8
-# sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
-# sudo alternatives --set python3 /usr/bin/python3.8
+sudo amazon-linux-extras enable python3.8
+sudo yum install -y python3.8
+sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
+sudo alternatives --set python3 /usr/bin/python3.8
 
 # Uninstall aws cli v1 and Install aws cli version-2.3.0
 # sudo pip2 uninstall awscli -y
