@@ -4,8 +4,6 @@
 import os
 import json
 import boto3
-import pandas as pd
-import numpy as np
 from io import StringIO
 
 sm = boto3.client('sagemaker')

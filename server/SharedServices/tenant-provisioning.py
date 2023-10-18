@@ -35,79 +35,44 @@ def provision_tenant(event, context):
     tenant_id = tenant_details['tenantId']
 
     try:
-        # TODO: Lab3 - uncomment below Premium tier code
-        if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
-            response_ddb = table_tenant_stack_mapping.put_item(
+        # # TODO: Lab3 - uncomment below Premium tier code
+        # if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
+        #     response_ddb = table_tenant_stack_mapping.put_item(
                 
-                Item={
-                    'tenantId': tenant_id,
-                    'stackName': stack_name.format(tenant_id),
-                    'applyLatestRelease': True,
-                    'codeCommitId': ''
-                }
-            )    
+        #         Item={
+        #             'tenantId': tenant_id,
+        #             'stackName': stack_name.format(tenant_id),
+        #             'applyLatestRelease': True,
+        #             'codeCommitId': ''
+        #         }
+        #     )    
         
-            logger.info(response_ddb)
-            # Invoke CI/CD pipeline
-            response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
+        #     logger.info(response_ddb)
+        #     # Invoke CI/CD pipeline
+        #     response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
+        # else:
+        #       # TODO: Lab2 - uncomment below Advanced tier code
+        #     if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
+        #         # Create tenantId prefix in S3 buckets
+        #         prefix = ''.join([tenant_id, '/','input','/'])
+        #         sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
+        #         s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=prefix)
 
-        else:
-              # TODO: Lab2 - uncomment below Advanced tier code
-            if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
-                # Create tenantId prefix in S3 buckets
-                prefix = ''.join([tenant_id, '/','input','/'])
-                sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
-                s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=prefix)
+        #         # Create notification for tenantId/output prefix 
+        #         # to invoke Sagemaker pipeline execution lamdba function.
 
-                # Create notification for tenantId/output prefix 
-                # to invoke Sagemaker pipeline execution lamdba function.
-                sagemaker_pipeline_exec_lambda_arn = __get_setting_value('sagemaker-pipeline-exec-fn-arn-pooled')
-
-                rule_name = f's3rule-{tenant_id}-{region}'
-                event_pattern = {
-                    "detail": {
-                        "bucket": {
-                            "name": [sagemaker_s3bucket_pooled]
-                        },
-                        "object": {
-                            "key": [{
-                                "prefix": prefix
-                            }]
-                        }
-                    },
-                    "detail-type": ["Object Created"],
-                    "source": ["aws.s3"]
-                }
-
-                eventbridge.put_rule(
-                    Name=rule_name,
-                    EventPattern=json.dumps(event_pattern),
-                    State='ENABLED'
-                )
-
-                eventbridge.put_targets(
-                    Rule=rule_name,
-                    Targets=[
-                        {
-                            'Id': tenant_id,
-                            'Arn': sagemaker_pipeline_exec_lambda_arn,
-                            'RetryPolicy': {
-                                'MaximumRetryAttempts': 2,
-                                'MaximumEventAgeInSeconds': 3600
-                            }
-                        }
-                    ])
-            
-                __update_tenant_details(tenant_id,
-                                        sagemaker_s3bucket_pooled)
-            else:
+        #         __create_eventbridge_rule(prefix, tenant_id, sagemaker_s3bucket_pooled)
+                
+        #         __update_tenant_details(tenant_id,
+        #                                 sagemaker_s3bucket_pooled)
+        #     else:
                 # For basic tier tenant just update the tenant details table with api gateway url
                 s3bucket_basic_tier = __get_setting_value('sagemaker-s3bucket-pooled')
                 __update_tenant_details(tenant_id, s3bucket_basic_tier) 
 
         
     except Exception as e:
-        raise
+        raise Exception('Error occured while provisioning tenant', e) 
     else:
         return utils.create_success_response("Tenant Provisioning Started")
 
@@ -145,4 +110,48 @@ def __get_setting_value(setting_name):
     except Exception as e:
         logger.error('Error occured while getting settings')
         raise Exception('Error occured while getting settings', e) 
+
+
+def __create_eventbridge_rule(prefix, tenant_id, sagemaker_s3bucket_pooled):
+    try:
+        rule_name = f's3rule-{tenant_id}-{region}'
+        sagemaker_pipeline_exec_lambda_arn = __get_setting_value('sagemaker-pipeline-exec-fn-arn-pooled')
+
+        event_pattern = {
+            "detail": {
+                "bucket": {
+                    "name": [sagemaker_s3bucket_pooled]
+                },
+                "object": {
+                    "key": [{
+                        "prefix": prefix
+                    }]
+                }
+            },
+            "detail-type": ["Object Created"],
+            "source": ["aws.s3"]
+        }
+
+        eventbridge.put_rule(
+            Name=rule_name,
+            EventPattern=json.dumps(event_pattern),
+            State='ENABLED'
+        )
+
+        eventbridge.put_targets(
+            Rule=rule_name,
+            Targets=[
+                {
+                    'Id': tenant_id,
+                    'Arn': sagemaker_pipeline_exec_lambda_arn,
+                    'RetryPolicy': {
+                        'MaximumRetryAttempts': 2,
+                        'MaximumEventAgeInSeconds': 3600
+                    }
+                }
+            ])
+    except Exception as e:
+        logger.error('Error occured while creating eventbridge rule')
+        raise Exception('Error occured while creating eventbridge rule', e) 
+        
          

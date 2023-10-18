@@ -17,8 +17,6 @@ endpoint_name = os.getenv("ENDPOINT_NAME")
 root = logging.getLogger()
 root.setLevel("INFO")
 
-dynamodb = boto3.resource('dynamodb')
-table_tenant_details = dynamodb.Table('MLaaS-TenantDetails')
 
 def lambda_handler(event, context):
     
@@ -27,13 +25,18 @@ def lambda_handler(event, context):
 
     # Get all the necessary parameters from the request context
     tenant_id = event["requestContext"]["authorizer"]["principalId"]
+    tenant_name = event["requestContext"]["authorizer"]["tenantName"]
+    logging.info(f"input tenant name: {tenant_name} and its tenant_id: {tenant_id}")
+    # TODO: Lab4 - uncomment below and hardcode an tenantId
+    # tenant_id = "<hardcode tenantId>"
+    # logging.info(f"hardcoded  tenant_id: {tenant_id}")
     aws_access_key_id = event["requestContext"]["authorizer"]["aws_access_key_id"]
     aws_secret_access_key = event["requestContext"]["authorizer"]["aws_secret_access_key"]
     aws_session_token = event["requestContext"]["authorizer"]["aws_session_token"]
     tenant_tier = event["requestContext"]["authorizer"]["tier"]
     model_version = event["requestContext"]["authorizer"]["modelVersion"]
+    
 
-    logging.info(f"tenant_id: {tenant_id}")
     logging.info(f"endpoint_name: {endpoint_name}")
     logging.info(f"tenant_tier: {tenant_tier}")
     logging.info(f"model_version: {model_version}")

@@ -51,10 +51,10 @@ def lambda_handler(event, context):
 
     userpool_id = tenant_details['Item']['userPoolId']
     appclient_id = tenant_details['Item']['appClientId']
-    # apigateway_url = tenant_details['Item']['apiGatewayUrl']
     tenant_tier = tenant_details['Item']['tenantTier']
     bucket = tenant_details['Item']['sagemakerS3Bucket']
     model_version = tenant_details['Item']['modelVersion']
+    tenant_name = tenant_details['Item']['tenantName']
 
     if (tenant_tier.upper() == utils.TenantTier.BASIC.value.upper()):
         if 'basic_inference' not in methodArn:
@@ -87,38 +87,34 @@ def lambda_handler(event, context):
     authorization_success_policy=""
 
     try:
-        if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
-            session_parameters = assume_role(
-                access_role_arn=role_to_assume_arn, tenant_id=tenant_id
-            )
+        ## TODO: Lab4 - uncomment below ABAC code for Advanced tier code
+        # if (tenant_tier.upper() == utils.TenantTier.ADVANCED.value.upper()):
+        #     session_parameters = assume_role(
+        #         access_role_arn=role_to_assume_arn, tenant_id=tenant_id
+        #     )
 
-            if session_parameters is None:
-                return authorizer_layer.create_auth_denied_policy(methodArn)
+        #     if session_parameters is None:
+        #         return authorizer_layer.create_auth_denied_policy(methodArn)
 
-            # After succesfully assuming the role we can return a success policy
-            authorization_success_policy = authorizer_layer.create_auth_success_policy(
-                methodArn, tenant_id, session_parameters
-            )
-
-            
-        else:
+        #     # After succesfully assuming the role we can return a success policy
+        #     authorization_success_policy = authorizer_layer.create_auth_success_policy(
+        #         methodArn, tenant_id, tenant_details, session_parameters
+        #     )
+        #     logger.info("Authorization succeeded")
+        #     return authorization_success_policy
+        # else:
             session_parameters = SessionParameters(
-                aws_access_key_id="",
-                aws_secret_access_key="",
-                aws_session_token=""
+                aws_access_key_id=None,
+                aws_secret_access_key=None,
+                aws_session_token=None
             )      
 
-            #Wwe can return a success policy
             authorization_success_policy = authorizer_layer.create_auth_success_policy(
-                methodArn, tenant_id, session_parameters
+                methodArn, tenant_id, tenant_details, session_parameters
             )
 
-        authorization_success_policy['context']['bucket'] = bucket
-        authorization_success_policy['context']['tier'] = tenant_tier
-        authorization_success_policy['context']['modelVersion'] = model_version
-
-        logger.info("Authorization succeeded")
-        return authorization_success_policy
+            logger.info("Authorization succeeded")
+            return authorization_success_policy
 
         
     except Exception as e:

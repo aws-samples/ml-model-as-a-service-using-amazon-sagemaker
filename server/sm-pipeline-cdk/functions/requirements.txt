@@ -1,5 +1,0 @@
-aws-lambda-powertools[Logger]
-python-jose[cryptography]
-chevron
-pandas
-numpy

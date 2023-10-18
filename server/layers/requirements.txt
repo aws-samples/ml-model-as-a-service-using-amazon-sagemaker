@@ -3,3 +3,4 @@ simplejson
 jsonpickle
 aws_requests_auth
 python-jose[cryptography]
+pandas

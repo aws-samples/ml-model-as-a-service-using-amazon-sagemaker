@@ -163,30 +163,32 @@ class Services(Construct):
         self._get_jwt_token_lambda = get_jwt_token_lambda
 
 
-        inference_request_processor_lambda_role = iam.Role(self, "InferenceRequestProcessorRole",
-            role_name=f'mlaas-infer-req-pro-role-{tenant_id}-{Aws.REGION}',
+        inference_invoke_endpoint_lambda_role = iam.Role(self, "InferenceInvokeEndpointRole",
+            role_name=f'mlaas-invoke-endpoint-role-{tenant_id}-{Aws.REGION}',
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-            managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorCloudWatchLambdaInsightsExecutionRolePolicy",
+            managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceInvokeEndpointCloudWatchLambdaInsightsExecutionRolePolicy",
                                                                             managed_policy_arn="arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"),
-                              iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorAWSLambdaBasicExecutionRole",
-                                                                            managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"),
-                              iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceRequestProcessorAmazonSageMakerFullAccess",
-                                                                            managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")])
+                              iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceInvokeEndpointAWSLambdaBasicExecutionRole",
+                                                                            managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
+                            #                                                 ,
+                            #   iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceInvokeEndpointAmazonSageMakerFullAccess",
+                            #                                                 managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")
+                                                                            ])
 
-        self._inference_processor_role = inference_request_processor_lambda_role
-        
-        lambda_inference_request_processor = lambda_.Function(
+        self._inference_processor_role = inference_invoke_endpoint_lambda_role
+
+        lambda_inference_invoke_endpoint = lambda_.Function(
             self,
-            f"RequestProcessorLambdaFn",
-            function_name=f"mlaas-req-pro-{tenant_id}-{Aws.REGION}",
+            f"InvokeEndpointLambdaFn",
+            function_name=f"mlaas-invoke-endpoint-{tenant_id}-{Aws.REGION}",
             runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="request_processor.lambda_handler",
+            handler="inference_invoke_endpoint.lambda_handler",
             timeout = Duration.minutes(2),
             code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
-            role=inference_request_processor_lambda_role,
+            role=inference_invoke_endpoint_lambda_role,
             layers=[layer]            
         )
-        self._inference_processor_lambda = lambda_inference_request_processor
+        self._inference_processor_lambda = lambda_inference_invoke_endpoint
 
         if (tenant_id == "pooled"):
             basic_tier_inference_processor_lambda_role = iam.Role(self, "BasicTierInferenceProcessorRole",
@@ -202,13 +204,14 @@ class Services(Construct):
             resources=[f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:endpoint/Endpoint-GenericModel"]
             )
             )
+         
             # ------------- Basic Tier Tenant Infrastructure --------------------------
-            lambda_basic_tier_inference_request_processor = lambda_.Function(
+            lambda_basic_tier_inference_invoke_endpoint = lambda_.Function(
                 self,
-                f"BasicTierRequestProcessorLambdaFn",
-                function_name=f"mlaas-basic-tier-req-pro-{tenant_id}-{Aws.REGION}",
+                f"BasicTierInvokeEndpointLambdaFn",
+                function_name=f"mlaas-basic-tier-inv-end-{tenant_id}-{Aws.REGION}",
                 runtime=lambda_.Runtime.PYTHON_3_9,
-                handler="request_processor.lambda_handler",
+                handler="inference_invoke_endpoint.lambda_handler",
                 timeout = Duration.minutes(2),
                 code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
                 role=basic_tier_inference_processor_lambda_role,
@@ -217,7 +220,7 @@ class Services(Construct):
                     "ENDPOINT_NAME": "Endpoint-GenericModel"
                 }            
             )
-            self._basic_tier_inference_processor_lambda = lambda_basic_tier_inference_request_processor
+            self._basic_tier_inference_processor_lambda = lambda_basic_tier_inference_invoke_endpoint
 
 
         lambda_pipe_exec_iam_role = iam.Role(self, 'LambdaPipeExecRole',

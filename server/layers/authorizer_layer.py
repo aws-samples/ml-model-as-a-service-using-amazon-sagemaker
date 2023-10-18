@@ -216,7 +216,7 @@ class AuthPolicy(object):
         return policy
 
 def create_auth_success_policy(
-    method_arn: str, tenant_id: str, session_parameters: SessionParameters
+    method_arn: str, tenant_id: str, tenant_details: dict, session_parameters: SessionParameters
 ) -> dict:
     """
     Creates a success policy for the authorizer to return.
@@ -237,6 +237,10 @@ def create_auth_success_policy(
             "aws_access_key_id": session_parameters.aws_access_key_id,
             "aws_secret_access_key": session_parameters.aws_secret_access_key,
             "aws_session_token": session_parameters.aws_session_token,
+            "bucket": tenant_details['Item']['sagemakerS3Bucket'],
+            "tier": tenant_details['Item']['tenantTier'],
+            "modelVersion": tenant_details['Item']['modelVersion'],
+            "tenantName": tenant_details['Item']['tenantName']
         },
     }
 
