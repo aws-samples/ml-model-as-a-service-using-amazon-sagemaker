@@ -1,20 +1,20 @@
 import boto3
 import sagemaker
+import pre_provision_utils
+client = boto3.client('sagemaker')
 
 def create_sagemaker_endpoint():
     model_name='GenericModel'
     endpoint_config_name = f"EndpointConfig-{model_name}"
     endpoint_name = f"Endpoint-{model_name}"
-    model_data_key = 'model_artifacts/basic_tier/output/model.tar.gz'
+    model_data_key = 'model_artifacts/basic_tier/output/generic.model.1.tar.gz'
 
     try:
-        client = boto3.client('sagemaker')
         region = boto3.Session().region_name
         role = sagemaker.get_execution_role()
-        account_number = boto3.client('sts').get_caller_identity().get('Account')
-        generic_model_data_bucket_name = f"sagemaker-mlaas-pooled-{region}-{account_number}"
+        generic_model_data_bucket_name = pre_provision_utils.get_bucket_name('mlaas-stack-pooled')
 
-        upload_initial_model(generic_model_data_bucket_name, model_data_key)
+        pre_provision_utils.upload_model(generic_model_data_bucket_name, model_data_key, 'models/generic.model.1.tar.gz')
 
         # get image URI
         image_uri = sagemaker.image_uris.retrieve(
@@ -70,10 +70,6 @@ def create_sagemaker_endpoint():
         print('Error occured while creating sagemaker endpoint')
         raise Exception('Error occured while creating sagemaker endpoint', e)     
 
-
-def upload_initial_model(bucket_name, key):
-    s3 = boto3.resource('s3')
-    s3.Bucket(bucket_name).upload_file('model.tar.gz', key)
 
 
 if __name__ == '__main__':
