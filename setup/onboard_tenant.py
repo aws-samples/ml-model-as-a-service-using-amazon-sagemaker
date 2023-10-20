@@ -27,9 +27,9 @@ def onboard_tenant(saas_admin_username, tenant_details, model_file):
         tenant_id = pre_provision_utils.get_tenant_id(tenant_details['tenantName'])
 
         if (tenant_tier.upper() == 'PREMIUM'):
-            bucket_name = pre_provision_utils.get_bucket_name(f'mlaas-stack-{tenant_id}')
             __update_tenant_stack_mapping(tenant_id)
             __invoke_pipeline()
+            bucket_name = pre_provision_utils.get_bucket_name(f'mlaas-stack-{tenant_id}')
         elif (tenant_tier.upper() == 'ADVANCED'):
             rule_name = f's3rule-{tenant_id}-{region}'
             prefix = ''.join([tenant_id, '/','input','/'])
@@ -43,6 +43,7 @@ def onboard_tenant(saas_admin_username, tenant_details, model_file):
             model_file
         )
         logger.info("Tenant successfully onboarded")
+        print("Tenant successfully onboarded")
 
     except Exception as e:
         logger.error("Error while pre-provisioning the tenant", e)
@@ -85,9 +86,14 @@ def __invoke_pipeline():
 
 
 def __wait_for_pipeline_to_complete(client, pipeline_name, pipeline_execution_id, timeout_seconds):
+    time.sleep(15)  # Wait for 15 seconds so that pipeline can start executing
     start_time = time.time()
     
-    while time.time() - start_time < timeout_seconds:
+    while True:
+        
+        if time.time() - start_time >= timeout_seconds:
+            raise Exception(f'Pipeline {pipeline_name} did not complete within the specified timeout.')
+            
         response = client.get_pipeline_execution(
             pipelineName=pipeline_name,
             pipelineExecutionId=pipeline_execution_id
@@ -103,10 +109,8 @@ def __wait_for_pipeline_to_complete(client, pipeline_name, pipeline_execution_id
             raise Exception('Pipeline execution failed!')
         else:
             logger.info(f'Pipeline execution is still in progress. Status: {status}')
+            print(f'Pipeline execution is still in progress. Status: {status}')
             time.sleep(60)  # Wait for 60 seconds before checking again
-
-
-    raise Exception(f'Pipeline {pipeline_name} did not complete within the specified timeout.')
 
 def __get_setting_value(setting_name):
     try:
