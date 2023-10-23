@@ -25,9 +25,9 @@ from sagemaker.workflow.condition_step import (
     ConditionStep,
     JsonGet,
 )
-from sagemaker.workflow.functions import (
-    JsonGet,
-)
+
+from sagemaker.workflow.conditions import ConditionLessThanOrEqualTo
+
 from sagemaker.workflow.parameters import (
     ParameterInteger,
     ParameterString,
@@ -210,7 +210,7 @@ def get_pipeline(
         name="ModelVersion", default_value="0",
     )
     tenant_id = ParameterString(
-        name="TenantID", default_value="sample-data",
+        name="TenantID", default_value="generic",
     )
     bucket_name = ParameterString(
         name="BucketName", default_value="",
@@ -248,7 +248,7 @@ def get_pipeline(
     )
     
     step_train = TrainingStep(
-        name="Train_Customer_Churn_Model",
+        name="TrainModel",
         estimator=xgb_train,
         inputs={
             "train": TrainingInput(
@@ -263,7 +263,7 @@ def get_pipeline(
     )
     
     step_register = RegisterModel(
-        name="RegisterCustomerChurnModel",
+        name="CustomerChurnModel",
         estimator=xgb_train,
         model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,
         content_types=["text/csv"],
@@ -296,12 +296,78 @@ def get_pipeline(
     )    
     
     step_post_process = ProcessingStep(
-        name="Copy_Model_Artifacts_To_S3_Folder",
+        name="CopyModelArtifactsToS3",
         step_args=step_args,
     )
     
     step_post_process.add_depends_on([step_register])
-                   
+    
+    
+    # processing step for evaluation
+    script_eval = ScriptProcessor(
+        image_uri=image_uri,
+        command=["python3"],
+        instance_type=processing_instance_type,
+        instance_count=1,
+        base_job_name=f"{base_job_prefix}/script-eval",
+        sagemaker_session=sagemaker_session,
+        role=role,
+    )
+    evaluation_report = PropertyFile(
+        name="EvaluationReport",
+        output_name="evaluation",
+        path="evaluation.json",
+    )
+    
+    step_eval = ProcessingStep(
+        name="EvaluateModel",
+        processor=script_eval,
+        inputs=[
+            ProcessingInput(
+                source=step_train.properties.ModelArtifacts.S3ModelArtifacts,
+                destination="/opt/ml/processing/model",
+            ),
+            ProcessingInput(
+                source = test_data_path,
+                destination="/opt/ml/processing/test",
+            ),
+        ],
+        outputs=[
+            ProcessingOutput(output_name="evaluation", source="/opt/ml/processing/evaluation"),
+        ],
+        code=os.path.join(BASE_DIR, "evaluate.py"),
+        property_files=[evaluation_report],
+    )
+
+    # register model step that will be conditionally executed
+    model_metrics = ModelMetrics(
+        model_statistics=MetricsSource(
+            s3_uri="{}/evaluation.json".format(
+                step_eval.arguments["ProcessingOutputConfig"]["Outputs"][0]["S3Output"]["S3Uri"]
+            ),
+            content_type="application/json"
+        )
+    )
+    
+    
+    # condition step for evaluating model quality and branching execution
+    cond_lte = ConditionLessThanOrEqualTo(
+        left=JsonGet(
+            step=step_eval,
+            property_file=evaluation_report,
+            json_path="regression_metrics.mse.value",
+        ),
+        right=0.5,
+    )
+    
+    step_cond = ConditionStep(
+        name="CheckMSEvaluation",
+        conditions=[cond_lte],
+        if_steps=[step_register,step_post_process],
+        else_steps=[],
+    )
+    
+    
     # pipeline instance
     pipeline = Pipeline(
         name=pipeline_name,
@@ -319,7 +385,7 @@ def get_pipeline(
             bucket_name,
             object_key,
         ],
-        steps=[step_train, step_register, step_post_process],
+        steps=[step_train, step_eval, step_cond],
         sagemaker_session=pipeline_session,
     )
     return pipeline
