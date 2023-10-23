@@ -22,6 +22,7 @@ def onboard_tenant(saas_admin_username, tenant_details, model_file):
         tenant_details = json.loads(tenant_details)
         tenant_tier = tenant_details['tenantTier']
         bucket_name=None
+        s3_upload_model_key=None
         pre_provision_utils.register_tenant(saas_admin_username, tenant_details)
 
         tenant_id = pre_provision_utils.get_tenant_id(tenant_details['tenantName'])
@@ -30,16 +31,18 @@ def onboard_tenant(saas_admin_username, tenant_details, model_file):
             __update_tenant_stack_mapping(tenant_id)
             __invoke_pipeline()
             bucket_name = pre_provision_utils.get_bucket_name(f'mlaas-stack-{tenant_id}')
+            s3_upload_model_key = f'{tenant_id}/model_artifacts/{tenant_id}.model.1.tar.gz'
         elif (tenant_tier.upper() == 'ADVANCED'):
             rule_name = f's3rule-{tenant_id}-{region}'
             prefix = ''.join([tenant_id, '/','input','/'])
             bucket_name = pre_provision_utils.get_bucket_name('mlaas-stack-pooled')
+            s3_upload_model_key = f'model_artifacts_mme/{tenant_id}.model.1.tar.gz'
             pre_provision_utils.put_object(bucket_name, prefix)
             __create_eventbridge_rule(tenant_id, prefix, rule_name, bucket_name)
         
         pre_provision_utils.upload_model(
             bucket_name,
-            f'{tenant_id}/model_artifacts/{tenant_id}.model.1.tar.gz',
+            s3_upload_model_key,
             model_file
         )
         logger.info("Tenant successfully onboarded")
