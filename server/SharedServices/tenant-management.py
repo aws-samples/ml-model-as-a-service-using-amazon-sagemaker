@@ -35,7 +35,7 @@ def create_tenant(event, context):
                     'tenantTier': tenant_details['tenantTier'],
                     'userPoolId': tenant_details['userPoolId'],                 
                     'appClientId': tenant_details['appClientId'],
-                    'modelVersion': 0,
+                    'modelVersion': 1,
                     'isActive': True
                 }
             )                    
