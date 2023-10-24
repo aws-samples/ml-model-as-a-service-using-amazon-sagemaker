@@ -27,4 +27,4 @@ SET_ADMIN_USER_PASSWORD=$(aws cognito-idp admin-set-user-password \
 --permanent)
 
 echo "Admin user created successfully."
-echo "Please use admin username: admin-user and password: Mlaa\$1234 to login to admin site URL: https://$ADMIN_SITE_URL"
+echo "Please use admin username: admin-user and password: Mlaa\$1234 to login to Control Plane admin site URL: https://$ADMIN_SITE_URL"
