@@ -26,7 +26,7 @@ class PooledSageMakerEndpoint(Construct):
     def model_endpoint(self) -> sagemaker.CfnEndpoint:
         return self._model_endpoint
 
-    def __init__(self, scope: Construct, id_: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, id_: str, mme_models_bucket: s3.Bucket, **kwargs) -> None:
         super().__init__(scope, id_, **kwargs)
 
         #SageMaker XGBoost Image Locations
@@ -42,10 +42,6 @@ class PooledSageMakerEndpoint(Construct):
             }
         )
 
-        mme_models_bucket = s3.Bucket.from_bucket_attributes(self, "ImportedBucket",
-            bucket_arn=f'arn:aws:s3:::sagemaker-mlaas-pooled-{Aws.REGION}-{Aws.ACCOUNT_ID}'
-        )
-        
         pooled_multi_model_iam_role = self.create_pooled_multi_model_iam_role(mme_models_bucket)
         
         self.attach_sagemaker_bucket_policy(mme_models_bucket, pooled_multi_model_iam_role)
@@ -110,7 +106,7 @@ class PooledSageMakerEndpoint(Construct):
         """
         Generate a SageMaker container definition for bronze multi-model
         """
-        bronze_multi_model_s3_path = models_bucket.s3_url_for_object("model_artifacts_mme/")
+        pooled_multi_model_s3_path = models_bucket.s3_url_for_object("model_artifacts_mme/")
 
         tenant_model_primary_container = sagemaker.CfnModel.ContainerDefinitionProperty(
             image=container_image_uri,
@@ -118,7 +114,7 @@ class PooledSageMakerEndpoint(Construct):
                 repository_access_mode="Platform"
             ),
             mode="MultiModel",
-            model_data_url=bronze_multi_model_s3_path,
+            model_data_url=pooled_multi_model_s3_path,
         )
 
         return tenant_model_primary_container        

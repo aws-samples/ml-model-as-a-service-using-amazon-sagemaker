@@ -11,7 +11,7 @@ class PooledInfrastructure(Construct):
     def __init__(self, scope: Construct, id: str, tenant_id: str, bucket: s3.Bucket, services: Services, **kwargs):
         super().__init__(scope, id, **kwargs)
 
-        pooled_sagemaker_endpoint_stack = PooledSageMakerEndpoint(self, "PooledSageMakerEndpoint")
+        pooled_sagemaker_endpoint_stack = PooledSageMakerEndpoint(self, "PooledSageMakerEndpoint", bucket)
 
         abac_tenant_iam_role = iam.Role(self, "MLaaSPooledTenantAbacRole",
                                                         role_name=f'ml-saas-tenant-abac-role-{tenant_id}-{Aws.REGION}',

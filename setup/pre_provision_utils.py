@@ -101,7 +101,7 @@ def register_tenant(saas_admin_username, tenant_details):
             response_json = response.json()
             return response_json
         else:
-            logger.error('POST request failed with status code '+ response.status_code)
+            logger.error('POST request failed with status code '+ str(response.status_code))
             raise Exception('POST request failed with status code ', response.status_code)
         
     except Exception as e:

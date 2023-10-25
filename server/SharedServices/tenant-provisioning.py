@@ -7,9 +7,7 @@ import utils
 from botocore.exceptions import ClientError
 import logger
 import os
-import subprocess
-from aws_lambda_powertools import Tracer
-tracer = Tracer()
+
 
 tenant_stack_mapping_table_name = os.environ['TENANT_STACK_MAPPING_TABLE_NAME']
 system_settings_table_name = os.environ['SYSTEM_SETTINGS_TABLE_NAME']
@@ -28,47 +26,51 @@ table_system_settings = dynamodb.Table(system_settings_table_name)
 table_tenant_details = dynamodb.Table(tenant_details_table_name)
 
 stack_name = 'mlaas-stack-{0}'
-@tracer.capture_lambda_handler
 def provision_tenant(event, context):
     
     tenant_details = json.loads(event['body'])
     tenant_id = tenant_details['tenantId']
 
-    try:
-        # # TODO: Lab3 - uncomment below Premium tier code
-        # if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
-        #     response_ddb = table_tenant_stack_mapping.put_item(
+    try:          
+        # TODO: Lab3 - uncomment below if loop for Premium tier code
+        '''
+        if (tenant_details['tenantTier'].upper() == utils.TenantTier.PREMIUM.value.upper()):
+            response_ddb = table_tenant_stack_mapping.put_item(
                 
-        #         Item={
-        #             'tenantId': tenant_id,
-        #             'stackName': stack_name.format(tenant_id),
-        #             'applyLatestRelease': True,
-        #             'codeCommitId': ''
-        #         }
-        #     )    
+                Item={
+                    'tenantId': tenant_id,
+                    'stackName': stack_name.format(tenant_id),
+                    'applyLatestRelease': True,
+                    'codeCommitId': ''
+                }
+            )    
         
-        #     logger.info(response_ddb)
-        #     # Invoke CI/CD pipeline
-        #     response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
-        # else:
-        #       # TODO: Lab2 - uncomment below Advanced tier code
-        #     if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
-        #         # Create tenantId prefix in S3 buckets
-        #         prefix = ''.join([tenant_id, '/','input','/'])
-        #         sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
-        #         s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=prefix)
+            logger.info(response_ddb)
+            # Invoke CI/CD pipeline
+            response_codepipeline = codepipeline.start_pipeline_execution(name='ml-saas-pipeline')
+        '''    
+        
+        # TODO: Lab2 - uncomment below if loop for Advanced tier code
+        '''
+        if (tenant_details['tenantTier'].upper() == utils.TenantTier.ADVANCED.value.upper()):
+            # Create tenantId prefix in S3 buckets
+            prefix = ''.join([tenant_id, '/','input','/'])
+            sagemaker_s3bucket_pooled = __get_setting_value('sagemaker-s3bucket-pooled')
+            s3.put_object(Bucket=sagemaker_s3bucket_pooled, Key=prefix)
 
-        #         # Create notification for tenantId/output prefix 
-        #         # to invoke Sagemaker pipeline execution lamdba function.
+            # Create notification for tenantId/output prefix 
+            # to invoke Sagemaker pipeline execution lamdba function.
 
-        #         __create_eventbridge_rule(prefix, tenant_id, sagemaker_s3bucket_pooled)
-                
-        #         __update_tenant_details(tenant_id,
-        #                                 sagemaker_s3bucket_pooled)
-        #     else:
-                # For basic tier tenant just update the tenant details table with api gateway url
-                s3bucket_basic_tier = __get_setting_value('sagemaker-s3bucket-pooled')
-                __update_tenant_details(tenant_id, s3bucket_basic_tier) 
+            __create_eventbridge_rule(prefix, tenant_id, sagemaker_s3bucket_pooled)
+            
+            __update_tenant_details(tenant_id,
+                                    sagemaker_s3bucket_pooled)
+        '''                            
+            
+        if (tenant_details['tenantTier'].upper() == utils.TenantTier.BASIC.value.upper()):
+            # For basic tier tenant just update the tenant details table with api gateway url
+            s3bucket_basic_tier = __get_setting_value('sagemaker-s3bucket-pooled')
+            __update_tenant_details(tenant_id, s3bucket_basic_tier) 
 
         
     except Exception as e:
