@@ -11,7 +11,6 @@ import logger
 from jose import jwk, jwt
 from jose.utils import base64url_decode
 import auth_manager
-import utils
 
 region = os.environ['AWS_REGION']
 # sts_client = boto3.client("sts", region_name=region)

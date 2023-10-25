@@ -27,8 +27,8 @@ INSTANCE_TYPE = "ml.t2.medium"
 class DedicatedSageMakerEndpoint(Construct):
 
     @property
-    def model_endpoint_name(self) -> str:
-        return self._model_endpoint_name
+    def model_endpoint(self) -> sagemaker.CfnEndpoint:
+        return self._model_endpoint
 
     def __init__(self, scope: Construct, construct_id: str, tenant_id: str, bucket: s3.Bucket, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -104,7 +104,7 @@ class DedicatedSageMakerEndpoint(Construct):
         )        
         model_endpoint.node.add_dependency(model_endpoint_config)
         
-        self._model_endpoint_name = model_endpoint.endpoint_name
+        self._model_endpoint = model_endpoint
         
         
     def generate_container_definition_property(self, models_bucket: s3.Bucket, container_image_uri: str) -> sagemaker.CfnModel.ContainerDefinitionProperty:

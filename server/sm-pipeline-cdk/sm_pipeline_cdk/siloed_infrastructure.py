@@ -23,10 +23,10 @@ class SiloedInfrastructure(Construct):
             
         dedicated_sagemaker_infrastructure_stack = DedicatedSageMakerInfrastructure(self, "DedicatedSageMakerInfrastructure", 
                 tenant_id = tenant_id, 
-                endpoint_name = dedicated_sagemaker_endpoint_stack.model_endpoint_name, 
-                sagemaker_model_bucket_name = bucket.bucket_name,
-                api_gateway_id = tenant_api.api_gateway.rest_api_id,
-                api_gateway_root_resource_id = tenant_api.api_gateway.rest_api_root_resource_id)
+                model_endpoint = dedicated_sagemaker_endpoint_stack.model_endpoint, 
+                sagemaker_model_bucket_name = bucket.bucket_name)
+        
+    
 
         services.s3_uploader_role.add_to_policy(iam.PolicyStatement(
         actions=["s3:PutObject", "s3:GetObject","s3:ListBucket", "s3:DeleteObject"],
@@ -38,7 +38,7 @@ class SiloedInfrastructure(Construct):
 
         services.inference_processor_role.add_to_policy(iam.PolicyStatement(
         actions=["sagemaker:InvokeEndpoint"],
-        resources=[f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:endpoint/{dedicated_sagemaker_endpoint_stack.model_endpoint_name}"]
+        resources=[dedicated_sagemaker_endpoint_stack.model_endpoint.ref]
         )
         )
 
@@ -50,7 +50,7 @@ class SiloedInfrastructure(Construct):
         )
         )
 
-        services.inference_processor_lambda.add_environment("ENDPOINT_NAME", dedicated_sagemaker_endpoint_stack.model_endpoint_name)
+        services.inference_processor_lambda.add_environment("ENDPOINT_NAME", dedicated_sagemaker_endpoint_stack.model_endpoint.endpoint_name)
         
         # Note: For silo tenants, prefix tenant_id/input/ 
         # and its notification are be added 

@@ -7,14 +7,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 import utils
 from botocore.exceptions import ClientError
-import logger
-import metrics_manager
-import auth_manager
-import requests
-from aws_requests_auth.aws_auth import AWSRequestsAuth
 
-from aws_lambda_powertools import Tracer
-tracer = Tracer()
 
 
 region = os.environ['AWS_REGION']

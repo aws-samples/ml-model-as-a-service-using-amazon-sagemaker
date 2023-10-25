@@ -7,11 +7,8 @@ import os
 import sys
 import logger
 import utils
-import metrics_manager
-import auth_manager
 from boto3.dynamodb.conditions import Key
-from aws_lambda_powertools import Tracer
-tracer = Tracer()
+
 
 client = boto3.client('cognito-idp')
 dynamodb = boto3.resource('dynamodb')

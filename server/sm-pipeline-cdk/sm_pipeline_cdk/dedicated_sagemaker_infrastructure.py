@@ -24,14 +24,15 @@ from aws_cdk import (
     aws_sqs as sqs,
     aws_iam as iam,
     aws_s3 as s3,
-    aws_s3_notifications as s3n
+    aws_s3_notifications as s3n,
+    aws_sagemaker as sagemaker
 )
 
 from aws_cdk.aws_apigateway import RestApi
 
 class DedicatedSageMakerInfrastructure(Construct):
 
-    def __init__(self, scope: Construct, id_: str, endpoint_name: str, tenant_id: str, sagemaker_model_bucket_name: str,  api_gateway_id: str, api_gateway_root_resource_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, id_: str, model_endpoint: sagemaker.CfnEndpoint, tenant_id: str, sagemaker_model_bucket_name: str, **kwargs) -> None:
         super().__init__(scope, id_, **kwargs)
         
         sagemaker_bucket_update_event = events.Rule(self, 
@@ -87,7 +88,7 @@ class DedicatedSageMakerInfrastructure(Construct):
         ) 
 
         sagemaker_model_deployer_lambda.add_environment(
-            "ENDPOINT_NAME", endpoint_name
+            "ENDPOINT_NAME", model_endpoint.endpoint_name
         ) 
         
         sagemaker_model_deployer_lambda.add_environment(

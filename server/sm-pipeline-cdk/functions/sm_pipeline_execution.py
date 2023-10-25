@@ -82,7 +82,6 @@ def handler(event, context):
             'tenantId':  tenant_id
         }
     )
-    # s3_access_role_arn = dynamo_item['Item']['s3BucketTenantRole']
     tenant_tier = dynamo_item['Item']['tenantTier']
     sm_bucket_name = dynamo_item['Item']['sagemakerS3Bucket']
     model_version_int = int(dynamo_item['Item']['modelVersion']) + 1
@@ -90,13 +89,6 @@ def handler(event, context):
     
     csv_buffer = StringIO()
     
-    # stack = cf.describe_stacks(StackName='mlaas-cdk-shared-template')
-    # print('## Stack')
-    # print(stack)
-    # outputs = stack['Stacks'][0]['Outputs'] 
-    # sm_projectname = next(output['OutputValue'] for output in outputs
-    #     if output['OutputKey'] == 'MlaasPoolSagemakerProjectName')
-    # print("##MlaasPoolSagemakerProjectName:", sm_projectname)
     
     if object_key.endswith('.csv'):
         s3 = create_boto3_client(tenant_id, tenant_tier,"s3_assumed_session")

@@ -23,8 +23,8 @@ class PooledSageMakerEndpoint(Construct):
 
 
     @property
-    def model_endpoint_name(self) -> str:
-        return self._model_endpoint_name
+    def model_endpoint(self) -> sagemaker.CfnEndpoint:
+        return self._model_endpoint
 
     def __init__(self, scope: Construct, id_: str, **kwargs) -> None:
         super().__init__(scope, id_, **kwargs)
@@ -86,7 +86,7 @@ class PooledSageMakerEndpoint(Construct):
         )        
         model_endpoint.node.add_dependency(model_endpoint_config) 
         
-        self._model_endpoint_name = model_endpoint.endpoint_name
+        self._model_endpoint = model_endpoint
         
 
     def attach_sagemaker_bucket_policy(

@@ -22,10 +22,6 @@ class Services(Construct):
         return self._s3_uploader_role    
 
     @property
-    def lambda_layer(self) -> lambda_.LayerVersion:
-        return self._lambda_layer
-
-    @property
     def authorizer_lambda(self) -> lambda_.Function:
         return self._authorizer_lambda
 
@@ -60,14 +56,31 @@ class Services(Construct):
     def __init__(self, scope: Construct, construct_id: str, tenant_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        layer = lambda_python.PythonLayerVersion(self, "MyLayer",
-                                                 entry="../layers/",
+        
+        utils_layer = lambda_python.PythonLayerVersion(self, "UtilsLayer",
+                                                 entry="../layers/utils/",
                                                  compatible_runtimes=[
                                                      lambda_.Runtime.PYTHON_3_9],
                                                  description="MLaaS utilities",
-                                                 layer_version_name="MlaasUploaderLayer"
+                                                 layer_version_name="MlaasUtilsLayer"
                                                  )
-        self._lambda_layer = layer
+        
+        pandas_layer = lambda_python.PythonLayerVersion(self, "PandasLayer",
+                                                 entry="../layers/pandas/",
+                                                 compatible_runtimes=[
+                                                     lambda_.Runtime.PYTHON_3_9],
+                                                 description="Pandas dependencies",
+                                                 layer_version_name="MlaasPandasLayer"
+                                                 )
+        
+        
+        authorizer_layer = lambda_python.PythonLayerVersion(self, "AuthorizerLayer",
+                                                 entry="../layers/authorizer/",
+                                                 compatible_runtimes=[
+                                                     lambda_.Runtime.PYTHON_3_9],
+                                                 description="Authorizer and power tools utilities",
+                                                 layer_version_name="MlaasAuthorizerLayer"
+                                                 )
 
         # ------------- S3 Uoloader Lambda --------------------------
         # S3 Uploader Lambda Role
@@ -91,7 +104,7 @@ class Services(Construct):
                                                           timeout = Duration.minutes(1),
                                                           function_name=f"mlaas-s3-uploader-{tenant_id}-{Aws.REGION}",
                                                           role=s3_uploader_lambda_role,
-                                                          layers=[layer]
+                                                          layers=[utils_layer]
                                                           )
 
         self._s3_uploader_lambda = s3_uploader_lambda
@@ -125,11 +138,7 @@ class Services(Construct):
                                                    handler="lambda_handler",
                                                    function_name=f"mlaas-api-authorizer-{tenant_id}-{Aws.REGION}",
                                                    role=auth_lambda_role,
-                                                   layers=[layer]
-                                                #        ,
-                                                #    environment={
-                                                #        'ROLE_TO_ASSUME_ARN': abac_tenant_access_role.role_arn,
-                                                #    }
+                                                   layers=[authorizer_layer, utils_layer]
                                                    )
         self._authorizer_lambda = auth_lambda
 
@@ -170,9 +179,6 @@ class Services(Construct):
                                                                             managed_policy_arn="arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"),
                               iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceInvokeEndpointAWSLambdaBasicExecutionRole",
                                                                             managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
-                            #                                                 ,
-                            #   iam.ManagedPolicy.from_managed_policy_arn(self, id="InferenceInvokeEndpointAmazonSageMakerFullAccess",
-                            #                                                 managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")
                                                                             ])
 
         self._inference_processor_role = inference_invoke_endpoint_lambda_role
@@ -186,7 +192,7 @@ class Services(Construct):
             timeout = Duration.minutes(2),
             code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
             role=inference_invoke_endpoint_lambda_role,
-            layers=[layer]            
+            layers=[utils_layer]            
         )
         self._inference_processor_lambda = lambda_inference_invoke_endpoint
 
@@ -215,7 +221,7 @@ class Services(Construct):
                 timeout = Duration.minutes(2),
                 code=lambda_.Code.from_asset("../sm-pipeline-cdk/functions"),
                 role=basic_tier_inference_processor_lambda_role,
-                layers=[layer],            
+                layers=[utils_layer],            
                 environment={
                     "ENDPOINT_NAME": "Endpoint-GenericModel"
                 }            
@@ -252,7 +258,7 @@ class Services(Construct):
             timeout = Duration.minutes(15),
             role = lambda_pipe_exec_iam_role,
             function_name=f'SMPipelineExeFunction-{tenant_id}-{Aws.REGION}',
-            layers=[layer]
+            layers=[utils_layer, pandas_layer]
         )
 
         self._sm_pipeline_execution_lambda = sagemaker_execute_pipeline_fn

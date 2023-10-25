@@ -12,7 +12,6 @@ import logger
 import re
 import authorizer_layer
 from authorizer_layer import SessionParameters
-import auth_manager
 import utils
 from collections import namedtuple
 

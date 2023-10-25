@@ -39,12 +39,25 @@ Globals:
         POWERTOOLS_METRICS_NAMESPACE: "MLaaS"
 
 Resources:
-  MLaaSLayers:
+  MLaaSUtilsLayers:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: mlaas-dependencies
+      LayerName: mlaas-utils-dependencies
       Description: Utilities for project
-      ContentUri: ../../layers/
+      ContentUri: ../../layers/utils/
+      CompatibleRuntimes:
+        - python3.9
+      LicenseInfo: "MIT"
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: python3.9
+
+  MLaaSAuthorizerLayers:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: mlaas-authorizer-dependencies
+      Description: Authorizer utilities for project
+      ContentUri: ../../layers/authorizer/
       CompatibleRuntimes:
         - python3.9
       LicenseInfo: "MIT"
@@ -128,7 +141,7 @@ Resources:
       MemorySize: 256
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers
+        - !Ref MLaaSAuthorizerLayers
       Environment:
         Variables:
           OPERATION_USERS_USER_POOL: !Ref CognitoOperationUsersUserPoolId
@@ -181,7 +194,8 @@ Resources:
       Role: !GetAtt CreateUserLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers
+        - !Ref MLaaSUtilsLayers
+        - !Ref MLaaSAuthorizerLayers
       Environment:
         Variables:
           TENANT_USER_POOL_ID: !Ref CognitoUserPoolId
@@ -232,7 +246,7 @@ Resources:
       Role: !GetAtt TenantManagementLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers
+        - !Ref MLaaSUtilsLayers
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: "TenantManagement.CreateTenant"
@@ -247,7 +261,7 @@ Resources:
       Role: !GetAtt TenantManagementLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers
+        - !Ref MLaaSUtilsLayers
 
   #Tenant Registration
   RegisterTenantLambdaExecutionRole:
@@ -278,7 +292,8 @@ Resources:
       Role: !GetAtt RegisterTenantLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers
+        - !Ref MLaaSUtilsLayers
+        - !Ref MLaaSAuthorizerLayers
       Environment:
         Variables: # Need to find a better way than hard coding resource paths
           CREATE_TENANT_ADMIN_USER_RESOURCE_PATH: "/user/tenant-admin"
@@ -358,7 +373,8 @@ Resources:
       Role: !GetAtt ProvisionTenantLambdaExecutionRole.Arn
       Tracing: Active
       Layers:
-        - !Ref MLaaSLayers
+        - !Ref MLaaSUtilsLayers
+        - !Ref MLaaSAuthorizerLayers
       Environment:
         Variables:
           TENANT_STACK_MAPPING_TABLE_NAME: !Ref TenantStackMappingTableName
@@ -400,8 +416,6 @@ Resources:
       Handler: update_tenantstackmap_table.handler
       Runtime: python3.9
       Role: !GetAtt UpdateTenantStackMapTableLambdaExecutionRole.Arn
-      Layers:
-        - !Ref MLaaSLayers
 Outputs:
   RegisterTenantLambdaExecutionRoleArn:
     Value: !GetAtt RegisterTenantLambdaExecutionRole.Arn

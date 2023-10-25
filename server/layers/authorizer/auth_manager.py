@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT-0
 
 import json
-import utils
 
 # These are the roles being supported in this reference architecture
 class UserRoles:

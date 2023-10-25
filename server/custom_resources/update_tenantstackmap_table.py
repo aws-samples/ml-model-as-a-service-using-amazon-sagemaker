@@ -3,7 +3,6 @@
 
 import json
 import boto3
-import logger
 
 from crhelper import CfnResource
 helper = CfnResource()
@@ -22,8 +21,7 @@ def do_action(event, _):
         event ([type]): [description]
         _ ([type]): [description]
     """
-    logger.info("Updating Tenant Stack Map")
-
+    
     tenantstackmap_table_name = event['ResourceProperties']['TenantStackMappingTableName']
     
     table_stack_mapping = dynamodb.Table(tenantstackmap_table_name)

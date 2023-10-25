@@ -17,9 +17,6 @@ class PooledInfrastructure(Construct):
                                                         role_name=f'ml-saas-tenant-abac-role-{tenant_id}-{Aws.REGION}',
                                                         assumed_by=iam.ServicePrincipal(
                                                             "lambda.amazonaws.com")
-                                                            # ,
-                                                        # managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, id="AmazonSageMakerFullAccessPolicy",
-                                                        #                                                             managed_policy_arn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess")]
                                                         )
         abac_tenant_iam_role.add_to_policy(iam.PolicyStatement(
         actions=["s3:PutObject", "s3:GetObject","s3:ListBucket", "s3:DeleteObject"],
@@ -30,7 +27,7 @@ class PooledInfrastructure(Construct):
 
         abac_tenant_iam_role.add_to_policy(iam.PolicyStatement(
         actions=["sagemaker:InvokeEndpoint"],
-        resources=[f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:endpoint/{pooled_sagemaker_endpoint_stack.model_endpoint_name}"],
+        resources=[pooled_sagemaker_endpoint_stack.model_endpoint.ref],
         conditions={
             "StringLike": {
                 "sagemaker:TargetModel": f"${{aws:PrincipalTag/TenantID}}*.tar.gz"
@@ -47,7 +44,7 @@ class PooledInfrastructure(Construct):
             conditions={"StringLike": {"aws:RequestTag/TenantID":"*"}}
         ))
 
-        services.inference_processor_lambda.add_environment("ENDPOINT_NAME", pooled_sagemaker_endpoint_stack.model_endpoint_name) 
+        services.inference_processor_lambda.add_environment("ENDPOINT_NAME", pooled_sagemaker_endpoint_stack.model_endpoint.endpoint_name) 
         services.authorizer_lambda.add_environment("ROLE_TO_ASSUME_ARN", abac_tenant_iam_role.role_arn) 
         services.sm_pipeline_execution_lambda.add_environment("S3_ACCESS_ROLE_ARN", abac_tenant_iam_role.role_arn)
         
@@ -55,7 +52,7 @@ class PooledInfrastructure(Construct):
         # to enable tenant isolation using ABAC role
         services.inference_processor_role.add_to_policy(iam.PolicyStatement(
         actions=["sagemaker:InvokeEndpoint"],
-        resources=[f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:endpoint/{pooled_sagemaker_endpoint_stack.model_endpoint_name}"]
+        resources=[pooled_sagemaker_endpoint_stack.model_endpoint.ref]
         ))
 
         services.s3_uploader_role.add_to_policy(iam.PolicyStatement(
