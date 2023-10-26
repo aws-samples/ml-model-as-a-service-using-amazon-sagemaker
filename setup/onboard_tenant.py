@@ -39,6 +39,7 @@ def onboard_tenant(saas_admin_username, tenant_details, model_file):
             s3_upload_model_key = f'model_artifacts_mme/{tenant_id}.model.1.tar.gz'
             pre_provision_utils.put_object(bucket_name, prefix)
             __create_eventbridge_rule(tenant_id, prefix, rule_name, bucket_name)
+            __update_tenant_details(tenant_id, bucket_name)
         
         pre_provision_utils.upload_model(
             bucket_name,
@@ -173,6 +174,27 @@ def __create_eventbridge_rule(tenant_id, prefix, rule_name, bucket_name):
     except Exception as e:
         logger.error('Error occured while creating eventbridge rule')
         raise Exception('Error occured while creating eventbridge rule', e) 
+    
+
+def __update_tenant_details(tenant_id, sagemaker_s3bucket_name):
+    try:
+        apigatewayurl_pooled = __get_setting_value('apigatewayurl-pooled')
+        table_tenant_details=dynamodb_client.Table('MLaaS-TenantDetails')
+        
+        response = table_tenant_details.update_item(
+            Key={'tenantId':tenant_id},
+            UpdateExpression="set apiGatewayUrl=:apiGatewayUrl, sagemakerS3Bucket=:sagemakerS3Bucket",
+            ExpressionAttributeValues={
+                ':apiGatewayUrl':apigatewayurl_pooled,
+                ':sagemakerS3Bucket': sagemaker_s3bucket_name
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+
+    except Exception as e:
+        logger.error('Error occured while getting settings and updating tenant details')
+        raise Exception('Error occured while getting settings and updating tenant details', e) 
+
         
          
 
