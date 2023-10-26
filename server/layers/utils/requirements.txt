@@ -1,3 +1,4 @@
 simplejson
 jsonpickle
 aws_requests_auth
+requests==2.28.2
