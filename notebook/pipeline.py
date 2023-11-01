@@ -237,7 +237,7 @@ def get_pipeline(
         role=role,
     )
     xgb_train.set_hyperparameters(
-        objective="reg:linear",
+        objective="binary:logistic",
         num_round=50,
         max_depth=5,
         eta=0.2,
