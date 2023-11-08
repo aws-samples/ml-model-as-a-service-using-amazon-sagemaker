@@ -51,18 +51,6 @@ class SmPipelineCdkStack(Stack):
         CfnOutput(self, "SageMakerExecutionRoleArn",
                        value=sagemaker_roles.sm_execution_role.role_arn)
         
-        CfnOutput(self, "AmazonSageMakerServiceCatalogProductsUseRoleArn",
-                       value=sagemaker_roles.sm_sc_product_use_role.role_arn)
-
-        CfnOutput(self, "AmazonSageMakerServiceCatalogProductsCodeBuildRoleArn",
-                       value=sagemaker_roles.sm_sc_product_codebuild_role.role_arn)
-
-        CfnOutput(self, "AmazonSageMakerServiceCatalogProductsCodePipelineRoleArn",
-                       value=sagemaker_roles.sm_sc_product_codepipeline_role.role_arn)
-
-
-        CfnOutput(self, "SageMakerServiceCatalogProductLaunchRoleArn",
-                       value=sagemaker_roles.sm_sc_product_launch_role.role_arn)
         
         sm_domain = sagemaker.CfnDomain(
             
