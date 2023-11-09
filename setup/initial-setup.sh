@@ -75,8 +75,8 @@ echo "Installing cdk cli version ^2.40.0"
 npm uninstall -g aws-cdk
 npm install -g aws-cdk@"^2.40.0"
 
-#Install jq version 1.5
-sudo yum -y install jq-1.5
+#Install jq version 1.6
+sudo yum -y install jq-1.6
 
 #Install pylint version 2.11.1
 python3 -m pip install pylint==2.11.1
