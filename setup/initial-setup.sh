@@ -55,9 +55,9 @@ rm -rf sam-installation
 
 # Install git-remote-codecommit version 1.15.1
 echo "Installing git-remote-codecommit version 1.15.1"
-curl -O https://bootstrap.pypa.io/get-pip.py
-python3 get-pip.py --user
-rm get-pip.py
+# curl -O https://bootstrap.pypa.io/get-pip.py
+# python3 get-pip.py --user
+# rm get-pip.py
 
 python3 -m pip install git-remote-codecommit==1.15.1
 
