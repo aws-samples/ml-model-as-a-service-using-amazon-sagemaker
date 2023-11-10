@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import utils
+import time
 
 import boto3
 
@@ -90,6 +91,7 @@ def invoke_sagemaker_endpoint(
             TargetModel={tenant_id}.model.{model_version}.tar.gz,
         )""")
         
+        start_time = time.time()
         response = temp_client.invoke_endpoint(
             EndpointName=endpoint_name,
             ContentType="text/csv",
@@ -97,6 +99,7 @@ def invoke_sagemaker_endpoint(
             Body=request_body_data,
         )
         
+        logging.info(f"Total inference execution time: {time.time()-start_time} seconds")
         logging.info(request_body_data)
     
     else:
@@ -107,13 +110,15 @@ def invoke_sagemaker_endpoint(
             ContentType=\"text/csv\",
             Body={request_body_data},
         )""")
-    
+
+        start_time = time.time()
         response = temp_client.invoke_endpoint(
             EndpointName=endpoint_name,
             ContentType="text/csv",
             Body=request_body_data,
         )
         
+        logging.info(f"Total inference execution time: {time.time()-start_time} seconds")
         logging.info(request_body_data)
 
     result = response["Body"].read().decode()   
