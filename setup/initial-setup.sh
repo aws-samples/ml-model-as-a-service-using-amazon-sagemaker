@@ -62,21 +62,21 @@ echo "Installing git-remote-codecommit version 1.15.1"
 python3 -m pip install git-remote-codecommit==1.15.1
 
 # Install node v18.18.0
-echo "Installing node v18.18.0"
-nvm deactivate
-nvm uninstall node
-nvm install v18.18.0
-nvm use v18.18.0
-nvm alias default v18.18.0
+# echo "Installing node v18.18.0"
+# nvm deactivate
+# nvm uninstall node
+# nvm install v18.18.0
+# nvm use v18.18.0
+# nvm alias default v18.18.0
 
 
 # Install cdk cli version ^2.40.0
-echo "Installing cdk cli version ^2.40.0"
-npm uninstall -g aws-cdk
-npm install -g aws-cdk@"^2.40.0"
+# echo "Installing cdk cli version ^2.40.0"
+# npm uninstall -g aws-cdk
+# npm install -g aws-cdk@"^2.40.0"
 
-#Install jq version 1.6
-sudo yum -y install jq-1.6
+#Install jq version
+sudo yum -y install jq
 
 #Install pylint version 2.11.1
 python3 -m pip install pylint==2.11.1
