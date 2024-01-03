@@ -70,10 +70,10 @@ python3 -m pip install git-remote-codecommit==1.15.1
 # nvm alias default v18.18.0
 
 
-# Install cdk cli version ^2.40.0
-# echo "Installing cdk cli version ^2.40.0"
-# npm uninstall -g aws-cdk
-# npm install -g aws-cdk@"^2.40.0"
+# Install cdk cli latest version 2.x.x
+echo "Installing cdk cli latest version 2.x.x"
+npm uninstall -g aws-cdk
+npm install -g aws-cdk@^2 --force
 
 #Install jq version
 sudo yum -y install jq
