@@ -28,14 +28,14 @@ nvm --version
 
 # Uninstall aws cli v1 and Install aws cli version-2.3.0
 # sudo pip2 uninstall awscli -y
-python3 -m pip uninstall awscli -y
+# python3 -m pip uninstall awscli -y
 
-echo "Installing aws cli version-2.3.0"
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.3.0.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install --update
-rm awscliv2.zip
-rm -rf aws 
+# echo "Installing aws cli version-2.3.0"
+# curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.3.0.zip" -o "awscliv2.zip"
+# unzip awscliv2.zip
+# sudo ./aws/install --update
+# rm awscliv2.zip
+# rm -rf aws 
 
 # Install sam cli version 1.64.0
 echo "Installing sam cli version 1.64.0"
